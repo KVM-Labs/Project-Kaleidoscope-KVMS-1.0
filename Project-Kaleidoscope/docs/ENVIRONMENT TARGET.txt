@@ -1,0 +1,55 @@
+======================================================================
+ENVIRONMENT TARGET: UNIVERSAL WEB STANDARD & PEAK ECOSYSTEM ADVANTAGE
+======================================================================
+Protocol Reference: KVMS-1.0 (2026 Standard)
+Target Environment: Platform-Agnostic Web Extensions Framework (Manifest V3)
+Primary Deployment Scope: Google Chrome, Brave, Mozilla Firefox, Microsoft Edge, Apple Safari
+
+1. THE UNIVERSAL BASELINE (Cross-Browser Compatibility)
+Project Kaleidoscope is fundamentally designed as a universal open data standard. 
+Built entirely on standard HTML5 Canvas rendering APIs, zlib compression tokens, 
+and local browser storage engines, the extension deploys seamlessly across any 
+modern Chromium, Gecko, or WebKit browser engine. A Memory Glyph exported from one 
+browser profile can be instantly rehydrated within an entirely different ecosystem.
+
+2. THE PRIVACY IMPERATIVE: THE BRAVE BROWSER ADVANTAGE
+While fully cross-compatible, running Kaleidoscope inside a privacy-first web ecosystem 
+like Brave provides users with an uncompromised security profile:
+* Zero Ad-Network Telemetry: Brave strips Google's telemetry and tracking sandboxes out 
+  of its Chromium framework by default. This guarantees that when the Kaleidoscope content 
+  script reads active tab text structures locally, the data is completely air-gapped from 
+  commercial data brokers.
+* Native Browser AI Safeguards: Brave features built-in privacy tools like Leo AI, which 
+  enforces no-retention chat policies out of the box. Kaleidoscope compliments this local 
+  paradigm perfectly, establishing a comprehensive, closed-loop local productivity pipeline.
+* Bulletproof Fingerprinting Shields: The Kaleidoscope output layer relies on bit-perfect 
+  PNG color mapping. Brave's aggressive, default-on fingerprinting protection and content 
+  shields block external scripts from scanning, scraping, or reading your downloaded data 
+  assets while they rest on your local disk.
+
+3. ADAPTIVE RUNTIME SECURITY UNDER MANIFEST V3
+Modern cross-browser extensions must navigate strict Manifest Version 3 (MV3) boundaries 
+enforced across the Chromium marketplace:
+* Lightweight Execution: Kaleidoscope bypasses modern background runtime restrictions 
+  by executing its shape mapping and compression entirely through localized scripts that 
+  run only when triggered by the active user tab.
+* Bypassing Network Limitations: Because the KVMS-1.0 standard relies on visual data 
+  conversion instead of continuous cloud syncing, it completely evades the strict 
+  Declarative Net Request (DNR) static rule constraints that cripple traditional, 
+  cloud-dependent data extension architectures.
+
+4. TARGET DEMOGRAPHICS & DISCOVERY ECOSYSTEM
+* Universal Scale: Deploying through a standardized web store framework opens the project 
+  to billions of everyday Chrome, Edge, and Safari productivity users struggling with context loss.
+* Core Early Adopters: The project gains a massive immediate launch pad among the 128M+ monthly 
+  active users natively operating on Brave. This audience consists primarily of developers, 
+  security researchers, and privacy advocates who are highly motivated to immediately adopt, 
+  audit, and scale an open, visual offline memory standard.
+
+THE RUNTIME CYCLE ON DECENTRALIZED LEAN BROWSERS:
+1. User interacts with an open LLM interface tab across any compatible standard browser.
+2. Optimized hardware-accelerated memory layers ensure multi-tab AI context extraction stays lightning fast.
+3. On export, the extension draws code vector blocks cleanly via a local HTML5 Canvas loop.
+4. The generated visual glyph downloads locally, protected by on-device system firewalls, ready 
+   for stateless, infinite context rehydration.
+======================================================================

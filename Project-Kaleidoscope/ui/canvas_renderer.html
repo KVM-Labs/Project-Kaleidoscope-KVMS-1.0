@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><style>body { background: #121214; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }</style></head>
+<body>
+    <canvas id="matrix" width="512" height="512" style="background:white; border-radius:4px;"></canvas>
+    <script>
+        const canvas = document.getElementById("matrix");
+        const ctx = canvas.getContext("2d");
+        function drawAnchor(x, y) {
+            ctx.lineWidth = 3; ctx.strokeStyle = "#000000"; ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI*2); ctx.stroke();
+            ctx.strokeStyle = "#FF0000"; ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI*2); ctx.stroke();
+        }
+        ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 512, 512);
+        drawAnchor(20, 20); drawAnchor(492, 20); drawAnchor(20, 492); drawAnchor(492, 492);
+        // [Rendering matrix loop executes dynamic data coordinate conversions here]
+    </script>
+</body>
+</html>

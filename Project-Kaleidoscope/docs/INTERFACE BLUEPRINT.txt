@@ -1,0 +1,59 @@
+======================================================================
+INTERFACE BLUEPRINT: KALEIDOSCOPE USER SETTINGS & SECURITY PANEL
+======================================================================
+UI Framework: Floating Sidebar Component / Universal Web Extension
+Default Theme: Deep Dark Matrix / Adaptive Minimalist
+
+[ PANEL HEADER ]
+----------------------------------------------------------------------
+(⚙️) PROJECT KALEIDOSCOPE: Session Memory Engine        [X] Close Panel
+----------------------------------------------------------------------
+
+[ SECTION 1: GLOBAL PREFERENCES ]
+[ ] Enable Auto-Kaleidoscope on Tab Close
+    (Automatically generates an encrypted glyph file if a deep chat session 
+    is closed abruptly).
+[x] Use Lossless PNG Compression Format (Recommended, ~50 KB)
+[ ] Use WebP High-Efficiency Format
+
+[ SECTION 2: THE ENCRYPTION VAULT (AES-256) ]
+Choose how your visual Memory Glyphs are secured locally:
+
+Security Method:
+(•) Personal Passkey PIN (Default)
+( ) Biometric Passphrase (Windows Hello / Mac TouchID integration)
+( ) Local Hardware Key Token
+
+Set Session Passkey PIN:
+[ [ * * * * ] ]  (4-to-12 digit numerical PIN or alphanumeric password)
+[x] Hide typing characters for privacy
+
+[ ] Require Passkey PIN only on Import / Upload
+[x] Require Passkey PIN for BOTH Export / Generation and Import
+
+[ SECTION 3: CUSTOM GLYPH THEME (Visual Obfuscation) ]
+Select the aesthetic camouflage style for your downloaded images. 
+To an outsider, the file will look exactly like your chosen art style:
+
+(•) Bauhaus Abstract Art (Bold colors, high-contrast crisp geometry)
+( ) Retro 8-Bit Geometric Array (Pixelated mosaic layout)
+( ) Cosmic Star Map (Shapes masked as glowing vector constellations)
+( ) Cyberpunk Matrix (High-chroma glowing paths on absolute dark)
+
+[ SECTION 4: DEFAULT MEMORY PROFILES ]
+Define what data paths the AI is allowed to compress into the shape matrix:
+[x] Core Prompt Constraints & System Directives
+[x] Code Blocks, Variable Arrays, and Milestones
+[x] User Persona Data (Name, Tone Preferences, Local Language)
+[ ] Sensitive API Keys and Passwords (DISABLED BY DEFAULT FOR SAFETY)
+
+----------------------------------------------------------------------
+[ RESET DEFAULT SETTINGS ]                    [ SAVE CONFIGURATION ]
+--------------------------------───────────────────-------------------
+
+[ QUICK ACTION BUTTONS - FOOTER OVERLAY ]
+┌──────────────────────────────┐  ┌──────────────────────────────┐
+│  📥 EXPORT CURRENT SESSION   │  │  📤 IMPORT REHYDRATION GLYPH │
+│ (Generate Kaleidoscope PNG)  │  │ (Upload PNG & Inject Context)│
+└──────────────────────────────┘  └──────────────────────────────┘
+======================================================================

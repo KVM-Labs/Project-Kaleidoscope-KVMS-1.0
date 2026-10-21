@@ -1,0 +1,65 @@
+======================================================================
+TECHNICAL SPECIFICATION SHEET: THE KALEIDOSCOPE VISUAL MATRIX (KVM)
+======================================================================
+Protocol Version: KVMS-1.0 (2026 Standard)
+File Output Target: Lossless PNG / WebP Standard
+Canvas Profile: 512 x 512 Pixels (Fixed Coordinate System)
+Encoding Framework: Local-First Lossless Visual Data Vaulting (LDV)
+
+1. SYSTEM INTERNALS & DATA CONVERSION FLOW
+The Kaleidoscope software converts raw conversation context into a 
+visual image using a 4-step pipeline executed entirely on the client side:
+[Text Context] ➔ [LLM Token Summary] ➔ [AES-256 Key Encryption] ➔ 
+[Geometric Shape Rendering Engine] ➔ [Secure Lossless PNG]
+
+2. THE THREE AXES OF DATA LAYER MULTIPLEXING
+
+AXIS A: THE GEOMETRIC SHAPE VECTOR (What the block means)
+The system uses computer-vision-optimized shapes with high edge-contrast. 
+Each shape corresponds to a specific data classification type:
+* Triangle (3 vertices): System Instructions & Core Constraints
+* Square/Rectangle (4 vertices): Variables, Constants, and Code States
+* Pentagon (5 vertices): Chronological Milestones & Saved Project Goals
+* Circle (Continuous curve): User Preferences, Personality, & Tone Matrix
+* Star/Hexagon (High vertex count): Critical Error Logs or Security Overrides
+
+AXIS B: THE SPATIAL COORDINATE MATRIX (Data structure & priority)
+The canvas uses a strict grid of 512 x 512 pixels with a (0,0) origin 
+at the top-left corner. The position of a shape maps its metadata relationships:
+* Y-Axis (Vertical Position): Chronological Sequence or Priority level. 
+  Shapes near Y:0-100 are high-priority/permanent memory. Shapes near 
+  Y:400-512 are session-specific temporary parameters.
+* X-Axis (Horizontal Position): Domain category or Data Dependency. 
+  For example, X:0-150 is reserved for Project Architecture, X:151-350 
+  is for Business Logic, and X:351-512 is for Textual Content/Style.
+
+AXIS C: THE COLOR CHANNEL MULTIPLEXER (Variable data states)
+The software isolates data using the Red, Green, and Blue (RGB) color 
+channels. Each channel represents a primary variable bit-multiplier:
+* Red Channel (Hex #FF0000 / RGB 255,0,0): Programming Language and Tech Stack.
+  Varying the brightness changes the version/stack type.
+* Green Channel (Hex #00FF00 / RGB 0,255,0): Progress completeness indicator.
+  Brightness from 0 to 255 tracks completion percentages (0% to 100%).
+* Blue Channel (Hex #0000FF / RGB 0,0,255): Safety, security flags, 
+  and level of encryption access.
+
+3. OPTICAL ERROR CORRECTION & PERSPECTIVE ALIGNMENT
+Because users may upload low-resolution or slightly warped images (e.g., 
+taking a phone picture of a Kaleidoscope printed on a sheet of paper), the 
+system features a mandatory alignment layer:
+* Corner Anchor Nodes: Every image renders 4 highly reflective target-rings 
+  in the absolute corners of the canvas (Pixels: (0,0), (512,0), (0,512), (512,512)).
+* Computer Vision Correction: On upload, standard vision models (using open 
+  libraries like OpenCV) detect these 4 anchors. The software uses a perspective 
+  warp algorithm to flatten, deskew, and crop the image back into a perfect 
+  512x512 square before calculating the shape coordinates.
+
+4. DECRYPTION RUNTIME LOGIC
+1. User drops Kaleidoscope PNG into the AI Prompt.
+2. AI identifies corner anchors and executes a perspective deskew.
+3. OpenCV isolates shape centers, edges, and RGB channel values.
+4. The matrix values are assembled into a raw encrypted text string.
+5. UI prompts user for their Passkey PIN.
+6. The string is decrypted via AES-256, feeding the exact system state 
+   back into the AI context window.
+======================================================================
