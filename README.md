@@ -1,4 +1,4 @@
-Format: Markdown Standard
+
 
 # Project Kaleidoscope (KVMS-1.0)
 ## A Universal, High-Density Visual Data Standard for Offline AI Context Restoration
