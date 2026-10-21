@@ -1,7 +1,3 @@
-======================================================================
-DEVELOPER BLUEPRINT: PROJECT README (README.md)
-======================================================================
-File Name: README.md
 Format: Markdown Standard
 
 # Project Kaleidoscope (KVMS-1.0)
