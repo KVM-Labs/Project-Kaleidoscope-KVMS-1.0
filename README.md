@@ -7,6 +7,12 @@
 
 Project Kaleidoscope is a privacy-first, zero-cloud browser extension engineered to establish a universal standard for cross-browser human-AI interaction. It eliminates AI context-loss and reduces cloud data-center server strains by allowing users to compress, locally encrypt (AES-256-GCM), and render deep AI chat histories into a highly compact visual image file (a "Memory Glyph") that resembles abstract art. 
 
+<p align="center">
+  <img src="docs/sample-art-glyph.png" alt="Project Kaleidoscope Sample Memory Glyph" width="320" />
+  <br />
+  <em>Sample 512×512 Encrypted Memory Glyph (KVMS-1.0)</em>
+</p>
+
 When a user drops their 50KB custom PNG back into a fresh, blank multimodal AI interface, the universal browser extension aligns the visual matrix, prompts for a passkey PIN, and instantly rehydrates the AI's cognitive context offline.
 
 ---
