@@ -1,0 +1,79 @@
+======================================================================
+DEVELOPER BLUEPRINT: UNIVERSAL BROWSER EXTENSION MANIFEST (manifest.json)
+======================================================================
+Specification: Manifest V3 Compatible
+Target Platforms: Google Chrome, Brave, Edge, Firefox, Safari, Opera
+File Name: manifest.json
+
+{
+  "manifest_version": 3,
+  "name": "Project Kaleidoscope: AI Session Vault",
+  "version": "1.0.0",
+  "description": "Locally encrypts and compresses AI chat context into high-density geometric memory glyph images.",
+  "author": "[Your Name]",
+  
+  "icons": {
+    "16": "icons/kaleidoscope_16.png",
+    "48": "icons/kaleidoscope_48.png",
+    "128": "icons/kaleidoscope_128.png"
+  },
+
+  "action": {
+    "default_popup": "ui/popup.html",
+    "default_icon": {
+      "16": "icons/kaleidoscope_16.png",
+      "48": "icons/kaleidoscope_48.png"
+    }
+  },
+
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads"
+  ],
+
+  "background": {
+    "service_worker": "background/worker.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com*",
+        "https://google.com*",
+        "https://claude.ai*"
+      ],
+      "js": ["scripts/content_scraper.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["ui/canvas_renderer.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "host_permissions": [
+    "https://chatgpt.com*",
+    "https://google.com*",
+    "https://claude.ai*"
+  ]
+}
+
+----------------------------------------------------------------------
+TECHNICAL BREAKDOWN OF THE MANIFEST ARCHITECTURE:
+----------------------------------------------------------------------
+1. "permissions": 
+   * "activeTab": Allows the extension to safely read the text inside your current AI chat tab when you click "Save."
+   * "storage": Saves your local settings and preferences directly into the browser's encrypted local storage.
+   * "downloads": Grants the extension permission to save the final 50KB Kaleidoscope PNG directly to your computer's local Downloads folder.
+
+2. "content_scripts" -> "matches": 
+   Specifies exactly which ecosystems the engine interacts with natively. Restricts the background script from reading unauthorized tabs (like financial or social platforms) to preserve baseline structural user privacy.
+
+3. "background" -> "service_worker": 
+   Points to `worker.js`, the silent local background engine. Manages the cryptographic math and converts raw text arrays into visual geometry without passing data across cloud servers.
+======================================================================

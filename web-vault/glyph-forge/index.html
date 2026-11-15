@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KVM LABS // Project Kaleidoscope</title>
+<style>
+:root {
+--bg: #0b0d14;
+--surface: #141824;
+--surface-alt: #1c2233;
+--accent: #00e5ff;
+--accent-purple: #7c4dff;
+--text: #e6e9f0;
+--muted: #8b95ad;
+--border: #262e42;
+--danger: #ff5252;
+--success: #00e676;
+}
+* { box-sizing: border-box; }
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+background: var(--bg);
+color: var(--text);
+margin: 0;
+padding: 16px;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+.header-badge {
+font-size: 11px;
+letter-spacing: 1.5px;
+color: var(--accent);
+border: 1px solid rgba(0, 229, 255, 0.3);
+background: rgba(0, 229, 255, 0.08);
+padding: 4px 10px;
+border-radius: 20px;
+margin-bottom: 12px;
+text-transform: uppercase;
+}
+.card {
+background: var(--surface);
+width: 100%;
+max-width: 480px;
+padding: 20px;
+border-radius: 16px;
+border: 1px solid var(--border);
+box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+margin-bottom: 20px;
+}
+h1 { font-size: 1.3rem; margin: 0 0 4px 0; color: #fff; text-align: center; }
+.subtitle { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px; }
+h2 { font-size: 0.95rem; color: var(--accent); margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 1px; }
+label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
+input[type="text"], input[type="password"], input[type="number"], select, textarea {
+width: 100%;
+background: var(--bg);
+border: 1px solid var(--border);
+border-radius: 8px;
+color: #fff;
+padding: 10px;
+font-size: 14px;
+font-family: inherit;
+}
+textarea { height: 68px; resize: vertical; }
+.row { display: flex; gap: 8px; }
+.row > div { flex: 1; }
+button {
+background: linear-gradient(135deg, var(--accent-purple), #536dfe);
+color: #fff;
+border: none;
+padding: 12px;
+font-size: 14px;
+font-weight: bold;
+border-radius: 8px;
+cursor: pointer;
+width: 100%;
+margin-top: 12px;
+transition: opacity 0.2s;
+}
+button:active { opacity: 0.85; }
+button.secondary {
+background: var(--surface-alt);
+border: 1px solid var(--border);
+color: var(--accent);
+}
+button.small-btn { padding: 6px 10px; font-size: 12px; margin-top: 6px; }
+.node-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.node-item {
+background: var(--surface-alt);
+border: 1px solid var(--border);
+border-radius: 8px;
+padding: 8px 10px;
+font-size: 13px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.node-tag {
+background: rgba(0, 229, 255, 0.15);
+color: var(--accent);
+padding: 2px 6px;
+border-radius: 4px;
+font-weight: bold;
+font-size: 11px;
+margin-right: 6px;
+}
+.node-del {
+background: none;
+border: none;
+color: var(--danger);
+width: auto;
+margin: 0;
+padding: 4px 8px;
+font-size: 14px;
+}
+.glyph-box { text-align: center; margin-top: 16px; display: none; }
+canvas {
+width: 240px;
+height: 240px;
+border-radius: 14px;
+border: 2px solid var(--accent);
+box-shadow: 0 0 24px rgba(0, 229, 255, 0.25);
+}
+.warning-note { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+.file-drop {
+background: var(--surface-alt);
+border: 2px dashed var(--border);
+padding: 16px;
+border-radius: 10px;
+text-align: center;
+position: relative;
+cursor: pointer;
+margin-top: 8px;
+}
+.file-drop input[type="file"] {
+position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;
+}
+.piano-bar {
+display: grid;
+grid-template-columns: repeat(12, 1fr);
+gap: 3px;
+margin-top: 10px;
+}
+.piano-key {
+padding: 12px 2px;
+border-radius: 6px;
+text-align: center;
+font-size: 11px;
+font-weight: bold;
+cursor: pointer;
+user-select: none;
+border: 1px solid var(--border);
+background: #1a1f2e;
+color: var(--muted);
+transition: all 0.15s;
+}
+.piano-key.sharp { background: #0e111a; }
+.piano-key.active {
+background: var(--accent);
+color: #000;
+border-color: #fff;
+box-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+}
+.prompt-box {
+background: #080a0f;
+border: 1px solid var(--accent);
+border-radius: 8px;
+padding: 12px;
+font-size: 12px;
+white-space: pre-wrap;
+color: #d0f8ff;
+margin-top: 10px;
+max-height: 220px;
+overflow-y: auto;
+}
+.status-msg { font-size: 12px; margin-top: 8px; text-align: center; }
+</style>
+</head>
+
+<body>
+
+<div class="header-badge">KVM LABS // PROJECT KALEIDOSCOPE V1</div>
+
+<!-- SECTION 1: ENCODE & FORGE GLYPH -->
+<div class="card">
+<h1>🌀 Glyph Forge (Save State)</h1>
+<div class="subtitle">100% Client-Side AES-GCM Encryption + Hash Art</div>
+
+<h2>1. Atomic Memory Nodes</h2>
+<div class="row">
+<div>
+<label>Musical Note</label>
+<select id="nodeNote">
+<option value="C">C (Core Rules)</option>
+<option value="C#">C# (Architecture)</option>
+<option value="D">D (Database)</option>
+<option value="D#">D# (API / Auth)</option>
+<option value="E">E (Security)</option>
+<option value="F">F (Frontend / UI)</option>
+<option value="F#">F# (Styling)</option>
+<option value="G">G (Tone / Persona)</option>
+<option value="G#">G# (Formatting)</option>
+<option value="A">A (Constraints)</option>
+<option value="A#">A# (Legal / Compliance)</option>
+<option value="B">B (Edge Cases)</option>
+</select>
+</div>
+<div>
+<label>Priority (1 = Highest)</label>
+<input type="number" id="nodePriority" value="1" min="1" max="10">
+</div>
+</div>
+<label>Rule / Context Content</label>
+<textarea id="nodeContent" placeholder="e.g., Use Python 3.12 with strict typing and zero external dependencies."></textarea>
+<button class="secondary small-btn" onclick="addNode()">+ Add Atomic Node</button>
+
+<div id="nodeList" class="node-list"></div>
+
+<h2>2. Seal & Render Glyph</h2>
+<div class="row">
+<div>
+<label>Passkey (AES-256)</label>
+<input type="password" id="savePassword" placeholder="Enter secret passkey">
+</div>
+<div>
+<label>Center Anchor Key</label>
+<select id="defaultKey">
+<option value="C_MAJOR">C Major (7 Notes)</option>
+<option value="A_MINOR">A Minor (7 Notes)</option>
+<option value="G_MAJOR">G Major (7 Notes)</option>
+<option value="C_TRIAD">C Triad (C-E-G)</option>
+<option value="ALL">Chromatic (All 12)</option>
+</select>
+</div>
+</div>
+
+<label>Repeat the passkey (a typo here would lock the glyph forever)</label>
+<input type="password" id="savePasswordConfirm" placeholder="Type the same passkey again">
+
+<button onclick="forgeGlyph()">🔒 Encrypt & Generate Kaleidoscope PNG</button>
+<div id="saveStatus" class="status-msg"></div>
+
+<div id="glyphOutputBox" class="glyph-box">
+<canvas id="kaleidoCanvas" width="512" height="512"></canvas>
+<button class="secondary" onclick="downloadGlyphPNG()">⬇ Download Lossless Glyph (.png)</button>
+<button class="secondary" onclick="downloadBackupFile()">⬇ Download Encrypted Backup (.kvmk)</button>
+<div class="warning-note">⚠ Save as a File (not to Photo Gallery) so mobile OS compression doesn't strip the encrypted PNG chunk. Apps that resize, convert or "optimize" images remove it too, so also keep the backup file: photo apps cannot damage it.</div>
+</div>
+</div>
+
+<!-- SECTION 2: REHYDRATE & HARMONIC ROUTING -->
+<div class="card">
+<h1>🎹 Harmonic Rehydration Engine</h1>
+<div class="subtitle">Unlock & Filter Context via Musical Keys + 6 Streams</div>
+
+<div class="file-drop">
+<span id="uploadLabel">📂 Tap to Upload Kaleidoscope PNG or Backup (.kvmk)</span>
+<input type="file" id="glyphFileInput" accept="image/png,.kvmk" onchange="handleFileSelect(event)">
+</div>
+
+<label>Decryption Passkey</label>
+<input type="password" id="loadPassword" placeholder="Enter passkey to unlock">
+<button onclick="unlockGlyph()">🔓 Decrypt & Load Matrix</button>
+<div id="loadStatus" class="status-msg"></div>
+
+<div id="rehydrateControls" style="display:none; margin-top: 16px;">
+<label>Preset Musical Key (Or tap individual piano keys below)</label>
+<select id="activeKeyPreset" onchange="applyKeyPreset()">
+<option value="CENTER">Use Glyph Center Symbol</option>
+<option value="C_MAJOR">C Major (C D E F G A B)</option>
+<option value="A_MINOR">A Minor (A B C D E F G)</option>
+<option value="G_MAJOR">G Major (G A B C D E F#)</option>
+<option value="C_TRIAD">C Triad (C E G — Ultra-Lean)</option>
+<option value="ALL">All 12 Chromatic Notes</option>
+</select>
+
+<!-- 12-Note Interactive Piano Keyboard -->
+<div id="pianoBar" class="piano-bar"></div>
+
+<div class="row" style="margin-top: 10px;">
+<div>
+<label>6-Stream Traversal Mode</label>
+<select id="streamSelect" onchange="renderSystemPrompt()">
+<option value="STREAM_6">Stream 6: Spiral Out (Priority 1➔10)</option>
+<option value="STREAM_5">Stream 5: Spiral In (Priority 10➔1)</option>
+<option value="STREAM_1">Stream 1: Chronological (Old➔New)</option>
+<option value="STREAM_2">Stream 2: Reverse (New➔Old)</option>
+<option value="STREAM_3">Stream 3: Bottom-Up (Note B➔C)</option>
+<option value="STREAM_4">Stream 4: Top-Down (Note C➔B)</option>
+</select>
+</div>
+<div>
+<label>Max Token Budget</label>
+<input type="number" id="tokenBudget" value="250" min="20" max="4000" onchange="renderSystemPrompt()">
+</div>
+</div>
+
+<label>Generated AI System Prompt (<span id="tokenCounter">0</span> tokens)</label>
+<div id="promptOutput" class="prompt-box"></div>
+<button class="secondary" onclick="copyPrompt()">📋 Copy Prompt for Claude / GPT</button>
+</div>
+</div>
+
+<script>
+const ALL_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const MUSICAL_KEYS = {
+"C_MAJOR": ["C", "D", "E", "F", "G", "A", "B"],
+"A_MINOR": ["A", "B", "C", "D", "E", "F", "G"],
+"G_MAJOR": ["G", "A", "B", "C", "D", "E", "F#"],
+"C_TRIAD": ["C", "E", "G"],
+"ALL": [...ALL_NOTES]
+};
+
+let memoryNodes = [
+{ id: 1, note: "C", priority: 1, content: "Write clean, modular code with strict error handling." },
+{ id: 2, note: "E", priority: 2, content: "Never expose API keys or sensitive user data in logs." },
+{ id: 3, note: "G", priority: 3, content: "Keep explanations direct, practical, and free of filler." },
+{ id: 4, note: "F#", priority: 2, content: "Use dark mode #0B0D14 with #00E5FF cyan highlights." }
+];
+let finalPngBlob = null;
+let finalPackedBytes = null;
+let uploadedFileBuffer = null;
+let unlockedNodes = [];
+let glyphDefaultKey = "ALL";
+let activeNotesSet = new Set(ALL_NOTES);
+
+renderNodeList();
+buildPianoBar();
+
+function addNode() {
+const note = document.getElementById("nodeNote").value;
+const priority = parseInt(document.getElementById("nodePriority").value) || 5;
+const content = document.getElementById("nodeContent").value.trim();
+if (!content) return;
+memoryNodes.push({ id: Date.now(), note, priority, content });
+document.getElementById("nodeContent").value = "";
+renderNodeList();
+}
+
+function removeNode(id) {
+memoryNodes = memoryNodes.filter(n => n.id !== id);
+renderNodeList();
+}
+
+function renderNodeList() {
+const list = document.getElementById("nodeList");
+list.innerHTML = memoryNodes.map(n => `
+<div class="node-item">
+<div><span class="node-tag">${n.note} · P${n.priority}</span>${escapeHtml(n.content)}</div>
+<button class="node-del" onclick="removeNode(${n.id})">✕</button>
+</div>
+`).join("");
+}
+
+function escapeHtml(str) {
+return str.replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+}
+
+async function deriveAesKey(password, salt) {
+const enc = new TextEncoder();
+const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+return crypto.subtle.deriveKey(
+{ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+keyMaterial,
+{ name: "AES-GCM", length: 256 },
+false,
+["encrypt", "decrypt"]
+);
+}
+
+function createSeededRng(hexHash) {
+let seed = parseInt(hexHash.slice(0, 8), 16) >>> 0;
+return function() {
+seed = (seed * 1664525 + 1013904223) >>> 0;
+return seed / 4294967296;
+};
+}
+
+function drawKaleidoscope(cipherHex, defaultKey) {
+const canvas = document.getElementById("kaleidoCanvas");
+const ctx = canvas.getContext("2d");
+const size = 512;
+const cx = size / 2;
+const rng = createSeededRng(cipherHex);
+
+ctx.fillStyle = "#0b0d14";
+ctx.fillRect(0, 0, size, size);
+
+const slices = 12;
+for (let layer = 0; layer < 7; layer++) {
+const radius = 55 + rng() * 185;
+const spread = 0.12 + rng() * 0.22;
+const r = Math.floor(40 + rng() * 215);
+const g = Math.floor(80 + rng() * 175);
+const b = Math.floor(140 + rng() * 115);
+ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.55)`;
+
+for (let s = 0; s < slices; s++) {
+const angle = ((Math.PI * 2) / slices) * s + (layer * 0.18);
+ctx.beginPath();
+ctx.moveTo(cx, cx);
+ctx.lineTo(cx + Math.cos(angle - spread) * (radius * 0.7), cx + Math.sin(angle - spread) * (radius * 0.7));
+ctx.lineTo(cx + Math.cos(angle) * radius, cx + Math.sin(angle) * radius);
+ctx.lineTo(cx + Math.cos(angle + spread) * (radius * 0.7), cx + Math.sin(angle + spread) * (radius * 0.7));
+ctx.closePath();
+ctx.fill();
+}
+}
+
+ctx.beginPath();
+ctx.arc(cx, cx, 38, 0, Math.PI * 2);
+ctx.fillStyle = "#0b0d14";
+ctx.fill();
+ctx.lineWidth = 3;
+ctx.strokeStyle = "#00e5ff";
+ctx.stroke();
+
+ctx.fillStyle = "#00e5ff";
+if (defaultKey === "C_MAJOR") {
+ctx.beginPath(); ctx.arc(cx, cx, 15, 0, Math.PI * 2); ctx.fill();
+} else if (defaultKey === "A_MINOR") {
+ctx.beginPath(); ctx.moveTo(cx, cx - 18); ctx.lineTo(cx - 16, cx + 14); ctx.lineTo(cx + 16, cx + 14); ctx.closePath(); ctx.fill();
+} else if (defaultKey === "G_MAJOR") {
+ctx.beginPath(); ctx.moveTo(cx, cx - 19); ctx.lineTo(cx + 17, cx); ctx.lineTo(cx, cx + 19); ctx.lineTo(cx - 17, cx); ctx.closePath(); ctx.fill();
+} else {
+ctx.fillRect(cx - 13, cx - 13, 26, 26);
+}
+}
+
+const crcTable = (() => {
+const t = new Uint32Array(256);
+for (let n = 0; n < 256; n++) {
+let c = n;
+for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+t[n] = c;
+}
+return t;
+})();
+
+function crc32(bytes) {
+let crc = 0xffffffff;
+for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+return (crc ^ 0xffffffff) >>> 0;
+}
+
+function injectPngChunk(pngBytes, chunkType, payloadBytes) {
+const iendPos = pngBytes.length - 12;
+const typeBytes = new TextEncoder().encode(chunkType);
+const chunkLen = payloadBytes.length;
+
+const fullChunk = new Uint8Array(12 + chunkLen);
+const view = new DataView(fullChunk.buffer);
+view.setUint32(0, chunkLen, false);
+fullChunk.set(typeBytes, 4);
+fullChunk.set(payloadBytes, 8);
+
+const crcInput = new Uint8Array(4 + chunkLen);
+crcInput.set(typeBytes, 0);
+crcInput.set(payloadBytes, 4);
+view.setUint32(8 + chunkLen, crc32(crcInput), false);
+
+const out = new Uint8Array(pngBytes.length + fullChunk.length);
+out.set(pngBytes.slice(0, iendPos), 0);
+out.set(fullChunk, iendPos);
+out.set(pngBytes.slice(iendPos), iendPos + fullChunk.length);
+return out;
+}
+
+function extractPngChunk(pngBytes, targetType) {
+const dec = new TextDecoder();
+let offset = 8;
+const view = new DataView(pngBytes.buffer, pngBytes.byteOffset, pngBytes.byteLength);
+while (offset < pngBytes.length) {
+const len = view.getUint32(offset, false);
+const type = dec.decode(pngBytes.slice(offset + 4, offset + 8));
+if (type === targetType) {
+return pngBytes.slice(offset + 8, offset + 8 + len);
+}
+offset += 12 + len;
+}
+return null;
+}
+
+async function forgeGlyph() {
+const status = document.getElementById("saveStatus");
+const password = document.getElementById("savePassword").value;
+const defaultKey = document.getElementById("defaultKey").value;
+
+if (!password) { status.style.color = "var(--danger)"; status.textContent = "Please enter a passkey first."; return; }
+if (memoryNodes.length === 0) { status.style.color = "var(--danger)"; status.textContent = "Add at least one memory node."; return; }
+if (password !== document.getElementById("savePasswordConfirm").value) { status.style.color = "var(--danger)"; status.textContent = "The two passkeys do not match. Please retype them."; return; }
+
+try {
+finalPngBlob = null;
+finalPackedBytes = null;
+document.getElementById("glyphOutputBox").style.display = "none";
+status.style.color = "var(--muted)";
+status.textContent = "Sealing and double-checking...";
+const salt = crypto.getRandomValues(new Uint8Array(16));
+const iv = crypto.getRandomValues(new Uint8Array(12));
+const aesKey = await deriveAesKey(password, salt);
+
+const payloadObj = { v: 1, defaultKey, nodes: memoryNodes };
+const plainBytes = new TextEncoder().encode(JSON.stringify(payloadObj));
+const cipherBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, plainBytes);
+const cipherBytes = new Uint8Array(cipherBuffer);
+
+const hashBuf = await crypto.subtle.digest("SHA-256", cipherBytes);
+const hashHex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+drawKaleidoscope(hashHex, defaultKey);
+
+const canvas = document.getElementById("kaleidoCanvas");
+const rawBlob = await new Promise(res => canvas.toBlob(res, "image/png"));
+const rawPngBytes = new Uint8Array(await rawBlob.arrayBuffer());
+
+const packedSecret = new Uint8Array(16 + 12 + cipherBytes.length);
+packedSecret.set(salt, 0);
+packedSecret.set(iv, 16);
+packedSecret.set(cipherBytes, 28);
+
+const finalPngBytes = injectPngChunk(rawPngBytes, "kvMk", packedSecret);
+
+// Safety check: open the finished file the way a reader would, and make sure it unlocks to exactly what was sealed.
+const checkPacked = extractPngChunk(finalPngBytes, "kvMk");
+if (!checkPacked) throw new Error("Safety check failed: the hidden data was not written into the image.");
+const checkKey = await deriveAesKey(password, checkPacked.slice(0, 16));
+let checkPlain;
+try { checkPlain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: checkPacked.slice(16, 28) }, checkKey, checkPacked.slice(28)); }
+catch (e) { throw new Error("Safety check failed: the sealed data did not unlock again, so nothing was saved."); }
+if (new TextDecoder().decode(checkPlain) !== JSON.stringify(payloadObj)) throw new Error("Safety check failed: the glyph did not unlock to the same notes.");
+if (window.createImageBitmap) await createImageBitmap(new Blob([finalPngBytes], { type: "image/png" })); // must still be a viewable image
+
+finalPngBlob = new Blob([finalPngBytes], { type: "image/png" });
+finalPackedBytes = packedSecret;
+
+document.getElementById("glyphOutputBox").style.display = "block";
+status.style.color = "var(--success)";
+status.textContent = "✓ Glyph forged and double-checked (" + memoryNodes.length + " nodes sealed). Download the PNG and the backup file.";
+} catch (err) {
+status.style.color = "var(--danger)";
+status.textContent = "Encryption error: " + err.message;
+}
+}
+
+function downloadGlyphPNG() {
+if (!finalPngBlob) return;
+const url = URL.createObjectURL(finalPngBlob);
+const a = document.createElement("a");
+a.href = url;
+a.download = "kvm_kaleidoscope_glyph.png";
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+}
+
+function downloadBackupFile() {
+if (!finalPackedBytes) return;
+const magic = new TextEncoder().encode("KVMK");
+const bytes = new Uint8Array(magic.length + finalPackedBytes.length);
+bytes.set(magic, 0);
+bytes.set(finalPackedBytes, magic.length);
+const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+const a = document.createElement("a");
+a.href = url;
+a.download = "kvm_kaleidoscope_backup.kvmk";
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+}
+
+// Finds the sealed data in an uploaded file, or explains in plain words why it cannot.
+function getPackedFromUpload(bytes) {
+if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+let packed = null;
+try { packed = extractPngChunk(bytes, "kvMk"); } catch (e) { packed = null; }
+if (!packed) throw new Error("This PNG has no hidden Kaleidoscope data. It was probably re-saved, resized, shrunk or cut off by an app. Use your original downloaded glyph, or the backup (.kvmk) file.");
+if (packed.length < 29) throw new Error("The hidden data in this glyph is damaged. Try the backup (.kvmk) file.");
+return packed;
+}
+if (bytes.length > 4 && bytes[0] === 0x4b && bytes[1] === 0x56 && bytes[2] === 0x4d && bytes[3] === 0x4b) {
+const packed = bytes.slice(4);
+if (packed.length < 29) throw new Error("This backup file is damaged or incomplete.");
+return packed;
+}
+if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8) throw new Error("This is a JPEG, not the original PNG. Converting to JPEG destroys the hidden data. Use your original glyph or the backup (.kvmk) file.");
+throw new Error("This file is not a Kaleidoscope glyph (.png) or backup (.kvmk).");
+}
+
+function handleFileSelect(event) {
+const file = event.target.files[0];
+if (!file) return;
+document.getElementById("uploadLabel").textContent = "📄 Loaded: " + file.name;
+const reader = new FileReader();
+reader.onload = e => { uploadedFileBuffer = new Uint8Array(e.target.result); };
+reader.readAsArrayBuffer(file);
+}
+async function unlockGlyph() {
+const status = document.getElementById("loadStatus");
+const password = document.getElementById("loadPassword").value;
+
+if (!uploadedFileBuffer) { status.style.color = "var(--danger)"; status.textContent = "Upload a Kaleidoscope PNG first."; return; }
+if (!password) { status.style.color = "var(--danger)"; status.textContent = "Enter the decryption passkey."; return; }
+
+let packed;
+try { packed = getPackedFromUpload(uploadedFileBuffer); }
+catch (err) { status.style.color = "var(--danger)"; status.textContent = "✗ " + err.message; return; }
+
+try {
+const salt = packed.slice(0, 16);
+const iv = packed.slice(16, 28);
+const cipherBytes = packed.slice(28);
+
+const aesKey = await deriveAesKey(password, salt);
+const plainBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, aesKey, cipherBytes);
+const decoded = JSON.parse(new TextDecoder().decode(plainBuffer));
+
+unlockedNodes = decoded.nodes || [];
+glyphDefaultKey = decoded.defaultKey || "ALL";
+
+document.getElementById("activeKeyPreset").value = "CENTER";
+applyKeyPreset();
+
+document.getElementById("rehydrateControls").style.display = "block";
+status.style.color = "var(--success)";
+status.textContent = "✓ Matrix Unlocked (" + unlockedNodes.length + " nodes recovered)";
+} catch (err) {
+status.style.color = "var(--danger)";
+status.textContent = "✗ Access Denied: Wrong passkey or corrupted glyph.";
+}
+}
+
+function buildPianoBar() {
+const bar = document.getElementById("pianoBar");
+if (!bar) return;
+bar.innerHTML = ALL_NOTES.map(note => {
+const isSharp = note.includes("#");
+return `<div class="piano-key ${isSharp ? 'sharp' : ''} active" id="key_${note.replace('#','s')}" onclick="togglePianoNote('${note}')">${note}</div>`;
+}).join("");
+}
+
+function updatePianoVisuals() {
+ALL_NOTES.forEach(note => {
+const el = document.getElementById("key_" + note.replace("#", "s"));
+if (!el) return;
+if (activeNotesSet.has(note)) el.classList.add("active");
+else el.classList.remove("active");
+});
+}
+
+function togglePianoNote(note) {
+if (activeNotesSet.has(note)) activeNotesSet.delete(note);
+else activeNotesSet.add(note);
+updatePianoVisuals();
+renderSystemPrompt();
+}
+
+function applyKeyPreset() {
+const preset = document.getElementById("activeKeyPreset").value;
+const targetKey = preset === "CENTER" ? glyphDefaultKey : preset;
+activeNotesSet = new Set(MUSICAL_KEYS[targetKey] || ALL_NOTES);
+updatePianoVisuals();
+renderSystemPrompt();
+}
+
+function renderSystemPrompt() {
+const stream = document.getElementById("streamSelect").value;
+const budget = parseInt(document.getElementById("tokenBudget").value) || 250;
+
+let filtered = unlockedNodes.filter(n => activeNotesSet.has(n.note));
+
+if (stream === "STREAM_6") filtered.sort((a, b) => a.priority - b.priority);
+else if (stream === "STREAM_5") filtered.sort((a, b) => b.priority - a.priority);
+else if (stream === "STREAM_1") filtered.sort((a, b) => a.id - b.id);
+else if (stream === "STREAM_2") filtered.sort((a, b) => b.id - a.id);
+else if (stream === "STREAM_3") filtered.sort((a, b) => ALL_NOTES.indexOf(b.note) - ALL_NOTES.indexOf(a.note));
+else if (stream === "STREAM_4") filtered.sort((a, b) => ALL_NOTES.indexOf(a.note) - ALL_NOTES.indexOf(b.note));
+
+const lines = [];
+let usedTokens = 0;
+for (const node of filtered) {
+const estTokens = Math.max(1, Math.ceil(node.content.length / 4));
+if (usedTokens + estTokens > budget) break;
+lines.push(`- [${node.note} | P${node.priority}] ${node.content}`);
+usedTokens += estTokens;
+}
+
+const activeNotesStr = Array.from(activeNotesSet).join("-");
+const header = `[KVM LABS HARMONIC CONTEXT | STREAM: ${stream.replace("STREAM_","0")} | NOTES: ${activeNotesStr || "NONE"}]\nApply these active constraints:\n`;
+const fullPrompt = lines.length > 0 ? header + lines.join("\n") : "[No nodes match active musical keys or token budget]";
+
+document.getElementById("tokenCounter").textContent = `${usedTokens} / ${budget}`;
+document.getElementById("promptOutput").textContent = fullPrompt;
+}
+
+async function copyPrompt() {
+const text = document.getElementById("promptOutput").textContent;
+if (navigator.clipboard && window.isSecureContext) {
+await navigator.clipboard.writeText(text);
+} else {
+const temp = document.createElement("textarea");
+temp.value = text;
+document.body.appendChild(temp);
+temp.select();
+document.execCommand("copy");
+document.body.removeChild(temp);
+}
+alert("KVM Labs Harmonic Prompt copied to clipboard!");
+}
+</script>
+</body>
+</html>
