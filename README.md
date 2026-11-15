@@ -1,7 +1,9 @@
 
 
 # Project Kaleidoscope (KVMS-1.0)
-## A Universal, High-Density Visual Data Standard for Offline AI Context Restoration
+## A Universal, High-Density Visual Data Standard for Offline AI Context Restoration 
+
+[![DOI](https://zenodo.org)](https://doi.org)
 
 Project Kaleidoscope is a privacy-first, zero-cloud browser extension engineered to establish a universal standard for cross-browser human-AI interaction. It eliminates AI context-loss and reduces cloud data-center server strains by allowing users to compress, locally encrypt (AES-256-GCM), and render deep AI chat histories into a highly compact visual image file (a "Memory Glyph") that resembles abstract art. 
 
