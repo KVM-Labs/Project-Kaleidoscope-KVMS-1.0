@@ -1,6 +1,6 @@
 # Project Kaleidoscope: Harmonic Context Routing and Local-First Encrypted Visual State Storage for Large Language Models
 
-**Author:** KVM Labs  
+**Authors:** IC&MC (KVM Labs)  
 **Version:** 1.0 (Reference Specification)  
 **Date:** November 2026  
 **Repository:** [github.com/KVM-Labs/Project-Kaleidoscope-KVMS-1.0](https://github.com/KVM-Labs/Project-Kaleidoscope-KVMS-1.0)  
@@ -134,5 +134,4 @@ Future iterations under **KVM Labs** will explore Reed-Solomon forward error cor
 * **CLI Engine (`glyph.py`):** Cross-platform Python implementation utilizing `cryptography` and `Pillow`.
 * **Web / Mobile Vault (`index.html`):** Zero-dependency browser application utilizing `Web Crypto API` and `HTML5 Canvas`, cross-compatible with the `kvMk` binary specification.
 
-Kind Regards,
-Igor
+(KVM Labs)
