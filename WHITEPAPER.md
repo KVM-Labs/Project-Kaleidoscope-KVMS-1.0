@@ -81,7 +81,7 @@ Neither variant survives lossy handling, so each is paired with a separate encry
 
 Managing dozens of project tags creates cognitive friction. **Harmonic Context Routing (HCR)** maps project domains onto the 12-tone equal-temperament chromatic scale:
 
-$$\mathcal{N} = \{\text{C}, \text{C\#}, \text{D}, \text{D\#}, \text{E}, \text{F}, \text{F\#}, \text{G}, \text{G\#}, \text{A}, \text{A\#}, \text{B}\}$$
+$$\mathcal{N} = \{\text{C}, \text{C}\sharp, \text{D}, \text{D}\sharp, \text{E}, \text{F}, \text{F}\sharp, \text{G}, \text{G}\sharp, \text{A}, \text{A}\sharp, \text{B}\}$$
 
 Each note corresponds to an assignable domain label (e.g., `C` = Core Rules, `E` = Security, `F#` = UI Styling, `G` = Tone/Persona). A **Musical Key** or **Chord** acts as a 12-bit binary bitmask $M \in \{0, 1\}^{12}$ that unlocks harmonious subsets of memory while keeping unrelated domains dormant:
 
