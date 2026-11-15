@@ -18,22 +18,39 @@ Unlike fragile high-density matrix grids, Kaleidoscope utilizes distinct, high-c
 ---
 
 ## 📂 Project Repository Directory Tree
-To deploy the extension locally, ensure your directory matches the following local tree layout:
+This is how the repository is organized. To try the extension you only need the `extension/` folder:
 
 ```text
-project-kaleidoscope/
-├── manifest.json
-├── icons/
-│   ├── kaleidoscope_16.png
-│   ├── kaleidoscope_48.png
-│   └── kaleidoscope_128.png
-├── background/
-│   └── worker.js
-├── scripts/
-│   └── content_scraper.js
-└── ui/
-    ├── popup.html
-    └── canvas_renderer.html
+Project-Kaleidoscope-KVMS-1.0/
+├── README.md                <- this file
+├── LICENSE                  <- MIT license text
+├── WHITEPAPER.md            <- the research paper (ideas, design, security model)
+├── extension/               <- the browser extension (load THIS folder)
+│   ├── manifest.json
+│   ├── icons/
+│   │   ├── kaleidoscope_16.png
+│   │   ├── kaleidoscope_48.png
+│   │   └── kaleidoscope_128.png
+│   ├── background/
+│   │   └── worker.js
+│   ├── scripts/
+│   │   └── content_scraper.js
+│   └── ui/
+│       ├── popup.html
+│       ├── popup.js
+│       └── canvas_renderer.html
+├── web-vault/               <- two working pages (open index.html in a browser)
+│   ├── README.md
+│   ├── glyph-forge/
+│   │   └── index.html       <- save notes as a flower glyph, restore them as an AI prompt
+│   └── pixel-vault/
+│       └── index.html       <- lock any text into a picture's pixels
+└── docs/
+    ├── README.md            <- guide to the documents below
+    ├── SPEC-glyph-forge.md  <- the Glyph Forge file format as it works today
+    ├── SPEC-pixel-vault.md  <- the Pixel Vault file format as it works today
+    ├── (concept documents: pitch, proposal, case study, blueprints)
+    └── archive/             <- older copies kept for reference
 ```
 
 ---
@@ -49,13 +66,13 @@ To load and test this prototype extension locally inside your preferred modern w
    * **Edge:** `edge://extensions`
 2. Toggle the **Developer Mode** switch in the top-right corner to **ON**.
 3. Click the **Load unpacked** button that appears in the top-left toolbar.
-4. Select your root local folder: `project-kaleidoscope/`. The extension will instantly parse your `manifest.json` file and mount into your active browser profile.
+4. Select the `extension/` folder from this repository. The extension will instantly parse its `manifest.json` file and mount into your active browser profile.
 
 ### For Mozilla Firefox
 1. Launch Firefox and type `about:debugging` into the URL search bar.
 2. Click on **This Firefox** in the left sidebar menu.
 3. Click the **Load Temporary Add-on...** button.
-4. Select your local `manifest.json` file from your project folder to register the service worker background layers.
+4. Select the `manifest.json` file inside the `extension/` folder to register the service worker background layers.
 
 ---
 
