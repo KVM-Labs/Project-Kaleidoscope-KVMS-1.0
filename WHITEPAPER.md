@@ -140,7 +140,7 @@ Future iterations under **KVM Labs** will explore Reed-Solomon forward error cor
 
 1. **Cheng, Z., et al. (2025).** *Glyph: Scaling Context Windows via Visual-Text Compression.* Tsinghua University & Zhipu AI. arXiv preprint [`arXiv:2510.17800`](https://arxiv.org).
 2. **DeepSeek-AI (2025).** *DeepSeek-OCR: Contexts Optical Compression.* arXiv preprint [`arXiv:2510.18234`](https://arxiv.org).
-3. **KVM Labs (2026).** *Project Kaleidoscope (KVMS-1.0): A Universal, High-Density Visual Data Standard for Offline AI Context Restoration.* Zenodo Archive. DOI: [`10.5281/zenodo.24238012`](https://doi.org).
+3. **KVM Labs (2026).** *Project Kaleidoscope (KVMS-1.0): A Universal, High-Density Visual Data Standard for Offline AI Context Restoration.* Zenodo Archive. DOI: [`10.5281/zenodo.24238012`](https://doi.org/10.5281/zenodo.24238012).
 
 ---
 (KVM Labs)
