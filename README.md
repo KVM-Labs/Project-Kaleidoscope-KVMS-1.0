@@ -85,10 +85,10 @@ To load and test this prototype extension locally inside your preferred modern w
 ---
 
 ## 🔓 Verification & Runtime Usage
-1. Navigate to any supported AI environment (`chatgpt.com`, `claude.ai`, or `://google.com`).
-2. Click the Kaleidoscope puzzle piece icon in your browser toolbar to reveal the floating sidebar panel.
+1. Navigate to any supported AI environment (`chatgpt.com`, `claude.ai`, or a Google AI page such as `gemini.google.com`).
+2. Click the Kaleidoscope icon (under the puzzle-piece Extensions menu) in your browser toolbar to open the small popup window.
 3. Enter your local secure validation passkey PIN and select your preferred visual camouflage layout style (e.g., Bauhaus Abstract Art).
-4. Tap **Export Current Session** to locally compress, encrypt, and instantly download your functional visual context asset file.
+4. Click **Export** to compress and encrypt the current chat on your own computer and open it as a picture.
 
 ---
 
@@ -118,4 +118,3 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-======================================================================
