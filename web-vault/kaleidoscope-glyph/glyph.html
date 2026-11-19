@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-i9/s1BEALoQw+IgGBHuY9Ctyi9KT+2pKRbANMeAZnVI=' 'sha256-DNAMRvInfQBxVhtLEUQlaqkGg74a/wTv5tqMAERFKkg='; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-i9/s1BEALoQw+IgGBHuY9Ctyi9KT+2pKRbANMeAZnVI=' 'sha256-ZWgLGEvN5Z3SGI+QJ4KA13VZhjHV4gOaV5bM1f9KmI8=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph</title>
 <!--
   Kaleidoscope Glyph, browser version (file format KGLYPH2)
@@ -20,8 +20,11 @@
     - padding:           the packed data is padded to 16 KB / 64 KB / 256 KB / 499,000 bytes before locking,
                          so the file size does not reveal how much text was written
     - hiding place:      a PNG text chunk named "kaleidoscope" (base64)
-  The page's Content-Security-Policy (meta tag above) allows only its own two scripts (by hash) and no
-  network connections. If you edit the scripts, run update_csp.py to refresh the hashes.
+  The page's Content-Security-Policy (meta tag above) allows its own two scripts (by hash). The only
+  network connections it permits are for the optional on-device AI chat (Step 3B), and only after you press
+  a button: the AI software from cdn.jsdelivr.net/npm/ (one pinned version) and the AI model files from
+  Hugging Face and GitHub. Your notes, messages and passkey are never sent. Without that chat the page
+  makes no network requests. If you edit the scripts, run update_csp.py to refresh the hashes.
   The picture is drawn from a fingerprint of the locked data. Pictures made here
   look different from pictures made by glyph.py, but the hidden data is
   interchangeable: each tool can open the other's glyphs.
@@ -194,6 +197,16 @@
   .dropveil>div{border:3px dashed var(--accent);border-radius:20px;padding:40px 30px;font-size:22px;font-weight:700;text-align:center;max-width:90vw}
   #loadPreview{margin:0 auto 12px;max-width:150px}
   #preview{margin:0 auto 10px;max-width:260px}
+
+  /* ---------- private AI chat ---------- */
+  .chatlog{min-height:140px;max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px;background:#0f0c24;margin-bottom:10px}
+  .bub{margin:0 0 8px;padding:8px 11px;border-radius:10px;white-space:pre-wrap;word-break:break-word;font-size:14.5px;max-width:92%}
+  .bub.user{background:#241d4d;margin-left:auto}
+  .bub.ai{background:#17133a;border:1px solid var(--line)}
+  .bub.err{border-color:var(--bad);color:#ffd3de}
+  .sugg{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px}
+  .sugg>span{flex:1;min-width:0;word-break:break-word;font-size:14px}
+  #chatIn{min-height:64px;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -271,6 +284,39 @@
       <p class="tip">Paste it at the start of a chat with any AI. When you paste into a cloud AI, that company can read it.</p>
     </section>
   </div>
+
+  <!-- Private AI chat: an AI that runs inside this browser (WebGPU) -->
+  <section class="card" id="aiCard" aria-labelledby="aiHead" hidden>
+    <h2 id="aiHead">Chat with a private AI <span class="badge">beta</span></h2>
+    <p class="hint">A small AI that runs inside this browser and uses your notes as its instructions. Your notes and messages stay on this device.</p>
+    <p class="msg" id="aiGpuMsg" aria-live="polite"></p>
+    <div id="aiSetup">
+      <div class="field"><label for="aiModel">AI model</label><select id="aiModel"></select></div>
+      <div class="rowbtns">
+        <button class="ghost" id="aiSizeBtn" type="button">Check download size</button>
+        <button class="primary" id="aiStartBtn" type="button" disabled>Download and start</button>
+        <button class="ghost" id="aiCancelBtn" type="button" hidden>Cancel Download</button>
+        <button class="ghost" id="aiDeleteBtn" type="button">Remove downloaded AI</button>
+      </div>
+      <p class="tip" id="aiSizeTip">Check the size first. The download happens once; next time the AI loads from this browser's storage.</p>
+      <div class="progress" id="aiProg"><div></div></div>
+      <p class="msg" id="aiMsg" aria-live="polite"></p>
+    </div>
+    <div id="aiChat" hidden>
+      <div class="chatlog" id="chatLog" role="log" aria-live="polite"></div>
+      <textarea id="chatIn" rows="2" maxlength="4000" placeholder="Type a message. Enter sends, Shift+Enter adds a line." aria-label="Message"></textarea>
+      <div class="rowbtns">
+        <button class="primary" id="chatSend" type="button">Send</button>
+        <button class="ghost" id="chatStop" type="button" hidden>Stop Generating</button>
+        <button class="ghost" id="chatNew" type="button">New chat</button>
+        <button class="ghost" id="chatSuggest" type="button">Suggest notes</button>
+        <button class="ghost" id="aiUnloadBtn" type="button">Unload AI</button>
+      </div>
+      <div id="suggestBox" hidden></div>
+      <p class="msg" id="chatMsg" aria-live="polite"></p>
+    </div>
+    <p class="tip">This small AI is far less capable than the big cloud assistants, and it can be wrong. The AI software and model are fetched from the internet when you start it; your notes and messages are never sent.</p>
+  </section>
 
   <footer>
     <ul>
@@ -973,10 +1019,12 @@ function planArt(fp, size) {
   };
 
   // The privacy badge always tells the truth about where messages go.
-  // Only "local" exists today. A cloud AI mode (a later step) must switch it to "cloud".
+  // "download" and "ai" are used by the on-device AI chat. A cloud AI mode (not built) must switch it to "cloud".
   const PRIVACY = {
     local: {cls: "", text: "On your device. Nothing is saved unless you save a glyph."},
     cloud: {cls: "cloud", text: "Cloud AI is on: your messages are sent to the AI provider you chose."},
+    download: {cls: "cloud", text: "Downloading the AI from the internet. Your notes and messages are not sent."},
+    ai: {cls: "", text: "The AI runs on your device. Your notes and chat are not sent anywhere."},
   };
   function setPrivacy(mode) {
     const p = PRIVACY[mode] || PRIVACY.local;
@@ -1157,6 +1205,7 @@ function planArt(fp, size) {
     const showEmpty = state.nodes.length === 0 && !state.started;
     $("#empty").hidden = !showEmpty;
     $("#workspace").hidden = showEmpty;
+    $("#aiCard").hidden = showEmpty;
 
     // prompt, counters, meter (Advanced preview)
     const promptBox = $("#prompt");
@@ -1584,6 +1633,7 @@ function planArt(fp, size) {
     if (openCancel) openCancel.cancelled = true;
     for (const d of document.querySelectorAll("dialog")) if (d.open) d.close();
     forgetPass();
+    aiReset();
     state.title = ""; state.started = false;
     state.limit = true; state.budget = AUTO_BUDGET;
     loadNodes([], {});
@@ -1658,6 +1708,360 @@ function planArt(fp, size) {
     });
   }
 
+  /* ======================================================================
+     PRIVATE AI CHAT (Step 3B). A small AI that runs inside this browser
+     using WebGPU. Nothing here runs until the visitor presses a button.
+       - the AI software is loaded from one pinned address (AI_LIB_URL)
+       - the model files come from Hugging Face, once, and are kept by the browser
+       - notes and messages are never sent anywhere; the AI's words are shown as plain text only
+     ====================================================================== */
+  const AI_LIB_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm";
+  const AI_MODELS = [
+    {base: "Qwen2.5-0.5B-Instruct", name: "Small and fast (Qwen 2.5, 0.5 billion)"},
+    {base: "Llama-3.2-1B-Instruct", name: "Better answers, bigger download (Llama 3.2, 1 billion)"},
+  ];
+  const ai = {
+    gpu: null,        // {ok, f16, why}
+    mod: null,        // the AI software, once loaded
+    engine: null,
+    phase: "idle",    // idle | loading | ready
+    sizeFor: "",      // model id whose size has been checked
+    loadToken: null,  // {cancelled} while a download runs
+    gen: null,        // {stop} while the AI is answering
+    msgs: [],         // chat history: {role, content}
+    busy: false,
+    epoch: 0,         // bumps on Clear Session so late replies are ignored
+  };
+
+  function aiModelId() {
+    const m = AI_MODELS[Number($("#aiModel").value) || 0];
+    return m.base + (ai.gpu && ai.gpu.f16 ? "-q4f16_1-MLC" : "-q4f32_1-MLC");
+  }
+  function fmtBytes(n) { return n >= 1e9 ? (n / 1e9).toFixed(2) + " GB" : Math.max(1, Math.round(n / 1e6)) + " MB"; }
+  function setAiMsg(text, kind) { const e = $("#aiMsg"); e.textContent = text || ""; e.className = "msg" + (kind ? " " + kind : ""); }
+  function setChatMsg(text, kind) { const e = $("#chatMsg"); e.textContent = text || ""; e.className = "msg" + (kind ? " " + kind : ""); }
+  function setAiProgress(frac) {
+    const bar = $("#aiProg");
+    bar.classList.toggle("on", frac != null);
+    bar.firstElementChild.style.width = frac == null ? "0%" : Math.round(100 * Math.min(1, Math.max(0, frac))) + "%";
+  }
+
+  async function aiGpuCheck() {
+    if (ai.gpu) return ai.gpu;
+    let r = {ok: false, f16: false, why: "This browser cannot run the on-device AI because it has no WebGPU. Try a recent Chrome or Edge on a computer. Copy prompt still works with any AI."};
+    try {
+      if (navigator.gpu && typeof navigator.gpu.requestAdapter === "function") {
+        const a = await navigator.gpu.requestAdapter();
+        if (a) r = {ok: true, f16: !!(a.features && a.features.has && a.features.has("shader-f16")), why: ""};
+        else r.why = "WebGPU is present, but no usable graphics card was found, so the on-device AI cannot run here. Copy prompt still works with any AI.";
+      }
+    } catch (e) { /* keep the default message */ }
+    ai.gpu = r;
+    return r;
+  }
+
+  function aiRender() {
+    const ok = ai.gpu && ai.gpu.ok;
+    $("#aiGpuMsg").textContent = ai.gpu ? (ok ? "" : ai.gpu.why) : "Checking whether this browser can run the AI...";
+    $("#aiGpuMsg").className = "msg" + (ai.gpu && !ok ? " err" : "");
+    $("#aiSetup").hidden = !ok || ai.phase === "ready";
+    $("#aiChat").hidden = !(ok && ai.phase === "ready");
+    const loading = ai.phase === "loading";
+    $("#aiModel").disabled = loading;
+    $("#aiSizeBtn").disabled = loading;
+    $("#aiStartBtn").disabled = loading || ai.sizeFor !== aiModelId();
+    $("#aiCancelBtn").hidden = !loading;
+    $("#aiDeleteBtn").disabled = loading;
+    $("#chatSend").disabled = ai.busy;
+    $("#chatStop").hidden = !(ai.gen && !ai.gen.stop);
+    $("#chatNew").disabled = ai.busy;
+    $("#chatSuggest").disabled = ai.busy;
+    $("#aiUnloadBtn").disabled = ai.busy;
+  }
+
+  async function aiCheckSize() {
+    const id = aiModelId();
+    setAiMsg("Checking the download size...");
+    $("#aiSizeBtn").disabled = true;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    let total = 0;
+    try {
+      const res = await fetch("https://huggingface.co/api/models/mlc-ai/" + id + "?blobs=true",
+        {signal: ctl.signal, credentials: "omit", referrerPolicy: "no-referrer"});
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const info = await res.json();
+      const files = Array.isArray(info.siblings) ? info.siblings : [];
+      total = files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+    } catch (e) { total = 0; }
+    clearTimeout(timer);
+    ai.sizeFor = id;
+    const tip = $("#aiSizeTip");
+    if (total) {
+      let text = "Download size: " + fmtBytes(total) + ", once. Press Download and start when you are ready.";
+      try {
+        const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+        if (est && est.quota && est.quota - (est.usage || 0) < total * 1.2)
+          text += " Warning: this browser may not have enough free storage for it.";
+      } catch (e) { /* ignore */ }
+      tip.textContent = text;
+      setAiMsg("");
+    } else {
+      tip.textContent = "The download size could not be checked (you may be offline). Small models like these are usually a few hundred megabytes up to about a gigabyte. You can still try Download and start.";
+      setAiMsg("");
+    }
+    aiRender();
+  }
+
+  async function aiStart() {
+    if (ai.phase !== "idle" || ai.sizeFor !== aiModelId()) return;
+    const token = {cancelled: false};
+    ai.loadToken = token;
+    ai.phase = "loading";
+    setPrivacy("download");
+    setAiProgress(0);
+    setAiMsg("Loading the AI software...");
+    aiRender();
+    const id = aiModelId();
+    let engine = null;
+    try {
+      if (!ai.mod) ai.mod = await import(AI_LIB_URL);
+      if (token.cancelled) return;
+      const list = (ai.mod.prebuiltAppConfig && ai.mod.prebuiltAppConfig.model_list) || [];
+      if (!list.some(m => m.model_id === id)) throw new Error("The installed AI software does not offer " + id + ".");
+      setAiMsg("Starting...");
+      engine = new ai.mod.MLCEngine({
+        initProgressCallback: rep => {
+          if (token.cancelled) return;
+          if (rep && typeof rep.progress === "number") setAiProgress(rep.progress);
+          if (rep && rep.text) setAiMsg(String(rep.text).slice(0, 160));
+        },
+      });
+      ai.engine = engine;
+      await engine.reload(id);
+      if (token.cancelled) { try { await engine.unload(); } catch (e) { /* ignore */ } return; }
+      ai.phase = "ready";
+      setAiMsg(""); setAiProgress(null);
+      setPrivacy("ai");
+      setChatMsg("");
+    } catch (e) {
+      if (token.cancelled) return;
+      ai.phase = "idle"; ai.engine = null;
+      setAiProgress(null);
+      setPrivacy("local");
+      setAiMsg("Could not start the AI: " + (e && e.message ? String(e.message).replace(/\.+$/, "") : "unknown error") +
+        ". Check your internet connection and that this browser allows WebGPU, then try again.", "err");
+    } finally {
+      if (ai.loadToken === token) ai.loadToken = null;
+      aiRender();
+    }
+  }
+
+  function aiCancelDownload() {
+    const token = ai.loadToken;
+    if (!token) return;
+    token.cancelled = true;
+    ai.loadToken = null;
+    const eng = ai.engine; ai.engine = null;
+    if (eng) { try { Promise.resolve(eng.unload()).catch(() => {}); } catch (e) { /* ignore */ } }
+    ai.phase = "idle";
+    setAiProgress(null);
+    setPrivacy("local");
+    setAiMsg("Download stopped. Parts already downloaded are kept by this browser and will be reused.");
+    aiRender();
+  }
+
+  async function aiUnload() {
+    const eng = ai.engine; ai.engine = null;
+    ai.phase = "idle";
+    if (eng) { try { await eng.unload(); } catch (e) { /* ignore */ } }
+    setPrivacy("local");
+    aiRender();
+  }
+
+  /* Clear Session also empties the chat and frees the AI's memory. The downloaded model files stay in the browser. */
+  function aiReset() {
+    ai.epoch++;
+    if (ai.gen) { ai.gen.stop = true; try { ai.engine && ai.engine.interruptGenerate(); } catch (e) { /* ignore */ } }
+    ai.gen = null; ai.busy = false;
+    if (ai.loadToken) aiCancelDownload();
+    ai.msgs = [];
+    $("#chatLog").textContent = "";
+    $("#chatIn").value = "";
+    $("#suggestBox").textContent = ""; $("#suggestBox").hidden = true;
+    setChatMsg(""); setAiMsg("");
+    aiUnload();
+  }
+
+  function addBubble(kind, text) {
+    const b = h("div", {class: "bub " + kind});
+    b.textContent = text;            // always plain text, never HTML
+    const log = $("#chatLog");
+    log.append(b);
+    log.scrollTop = log.scrollHeight;
+    return b;
+  }
+
+  function aiSystemPrompt() {
+    const usable = state.nodes.filter(n => n.text.trim());
+    const session = {labels: cleanLabels(state.labels), nodes: usable.map(n => cleanNode(n, 0))};
+    return makePrompt(session, state.active, currentBudget()).prompt;
+  }
+
+  async function chatSend() {
+    const input = $("#chatIn");
+    const text = input.value.trim();
+    if (!text || ai.phase !== "ready" || ai.busy || !ai.engine) return;
+    const epoch = ai.epoch, engine = ai.engine;
+    ai.busy = true;
+    input.value = "";
+    setChatMsg("");
+    ai.msgs.push({role: "user", content: text});
+    addBubble("user", text);
+    const bubble = addBubble("ai", "...");
+    const gen = {stop: false};
+    ai.gen = gen;
+    aiRender();
+    const sys = aiSystemPrompt();
+    const messages = (sys ? [{role: "system", content: sys}] : []).concat(ai.msgs);
+    let reply = "", failed = false;
+    try {
+      const stream = await engine.chat.completions.create({messages: messages, stream: true, temperature: 0.7, max_tokens: 512});
+      for await (const chunk of stream) {
+        if (epoch !== ai.epoch) return;
+        const d = chunk && chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content;
+        if (d) { reply += d; bubble.textContent = reply; $("#chatLog").scrollTop = $("#chatLog").scrollHeight; }
+        if (gen.stop) break;
+      }
+    } catch (e) {
+      if (epoch !== ai.epoch) return;
+      if (!gen.stop) {
+        failed = true;
+        bubble.className = "bub ai err";
+        bubble.textContent = "The AI could not answer: " + (e && e.message ? e.message : "unknown error") +
+          ". If the chat is very long, press New chat.";
+      }
+    }
+    if (epoch !== ai.epoch) return;
+    if (reply) ai.msgs.push({role: "assistant", content: reply});
+    else { ai.msgs.pop(); if (!failed) bubble.remove(); }   // keep the history in matching pairs
+    if (gen.stop && reply) bubble.textContent = reply + " [stopped]";
+    ai.gen = null; ai.busy = false;
+    aiRender();
+  }
+
+  function chatStop() {
+    if (!ai.gen) return;
+    ai.gen.stop = true;
+    try { ai.engine && ai.engine.interruptGenerate(); } catch (e) { /* ignore */ }
+    aiRender();
+  }
+
+  function chatNew() {
+    if (ai.busy) return;
+    ai.msgs = [];
+    $("#chatLog").textContent = "";
+    $("#suggestBox").textContent = ""; $("#suggestBox").hidden = true;
+    setChatMsg("");
+    try { ai.engine && ai.engine.resetChat && Promise.resolve(ai.engine.resetChat()).catch(() => {}); } catch (e) { /* ignore */ }
+  }
+
+  /* "Suggest notes": the AI proposes notes; nothing is added until the visitor presses Keep. */
+  function parseSuggestions(text) {
+    const have = new Set(state.nodes.map(n => n.text.trim().toLowerCase()));
+    const out = [];
+    for (const line of String(text || "").split(/\r?\n/)) {
+      const m = /^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$/.exec(line);
+      if (!m) continue;
+      const t = m[1].replace(/^["'`]+|["'`]+$/g, "").trim();
+      if (t.length < 3 || t.length > 200 || have.has(t.toLowerCase())) continue;
+      have.add(t.toLowerCase());
+      out.push(t);
+      if (out.length >= 5) break;
+    }
+    return out;
+  }
+
+  function keepSuggestion(t, row) {
+    state.started = true;
+    const note = NOTES.find(n => state.active.has(n)) || "C";
+    state.nodes.push({id: nextId++, note: note, text: t, priority: 5});
+    renderNotes(); refresh();
+    row.remove();
+    if (!$("#suggestBox").children.length) $("#suggestBox").hidden = true;
+  }
+
+  async function chatSuggest() {
+    if (ai.phase !== "ready" || ai.busy || !ai.engine) return;
+    if (!ai.msgs.length) { setChatMsg("Chat a little first, then ask for suggestions."); return; }
+    const epoch = ai.epoch, engine = ai.engine;
+    ai.busy = true; setChatMsg("Reading the chat for notes worth keeping..."); aiRender();
+    const transcript = ai.msgs.map(m => (m.role === "user" ? "User: " : "AI: ") + m.content).join("\n").slice(-6000);
+    const messages = [
+      {role: "system", content: "You turn conversations into short reusable notes. Reply with at most 5 lines. Each line starts with '- ' and holds ONE short rule or fact worth remembering for future chats, under 20 words. No other text."},
+      {role: "user", content: "Conversation:\n" + transcript + "\n\nWrite the notes."},
+    ];
+    let items = [], failed = "";
+    try {
+      const res = await engine.chat.completions.create({messages: messages, stream: false, temperature: 0.2, max_tokens: 300});
+      const content = res && res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content;
+      items = parseSuggestions(content);
+    } catch (e) { failed = e && e.message ? e.message : "unknown error"; }
+    if (epoch !== ai.epoch) return;
+    ai.busy = false;
+    const box = $("#suggestBox");
+    box.textContent = "";
+    if (failed) setChatMsg("Could not get suggestions: " + failed, "err");
+    else if (!items.length) setChatMsg("The AI did not suggest any new notes this time.");
+    else {
+      setChatMsg("Suggestions. Nothing is added until you press Keep.");
+      for (const t of items) {
+        const row = h("div", {class: "sugg"});
+        const label = h("span", {}); label.textContent = t;
+        row.append(label,
+          h("button", {class: "primary", type: "button", onclick: () => keepSuggestion(t, row)}, "Keep"),
+          h("button", {class: "ghost", type: "button", onclick: () => { row.remove(); if (!box.children.length) box.hidden = true; }}, "Dismiss"));
+        box.append(row);
+      }
+      box.hidden = false;
+    }
+    aiRender();
+  }
+
+  async function aiDeleteModel() {
+    const id = aiModelId();
+    setAiMsg("Removing the downloaded AI from this browser...");
+    try {
+      if (!ai.mod) ai.mod = await import(AI_LIB_URL);
+      await ai.mod.deleteModelAllInfoInCache(id);
+      ai.sizeFor = "";
+      $("#aiSizeTip").textContent = "Check the size first. The download happens once; next time the AI loads from this browser's storage.";
+      setAiMsg("Removed. Starting it again will download it again.", "ok");
+    } catch (e) {
+      setAiMsg("Could not remove it: " + (e && e.message ? e.message : "unknown error") + ". You can also clear this page's site data in the browser settings.", "err");
+    }
+    aiRender();
+  }
+
+  function wireAi() {
+    const sel = $("#aiModel");
+    AI_MODELS.forEach((m, i) => sel.append(h("option", {value: String(i)}, m.name)));
+    sel.addEventListener("change", () => { ai.sizeFor = ""; $("#aiSizeTip").textContent = "Check the size first. The download happens once; next time the AI loads from this browser's storage."; aiRender(); });
+    $("#aiSizeBtn").addEventListener("click", aiCheckSize);
+    $("#aiStartBtn").addEventListener("click", aiStart);
+    $("#aiCancelBtn").addEventListener("click", aiCancelDownload);
+    $("#aiDeleteBtn").addEventListener("click", aiDeleteModel);
+    $("#aiUnloadBtn").addEventListener("click", () => { chatNew(); aiUnload(); });
+    $("#chatSend").addEventListener("click", chatSend);
+    $("#chatStop").addEventListener("click", chatStop);
+    $("#chatNew").addEventListener("click", chatNew);
+    $("#chatSuggest").addEventListener("click", chatSuggest);
+    $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); } });
+    aiRender();
+    aiGpuCheck().then(aiRender);
+  }
+
+
   /* ---------- start up ---------- */
 
   function checkBrowser() {
@@ -1679,6 +2083,7 @@ function planArt(fp, size) {
   wireToolbar();
   wireDialogs();
   wireDropAnywhere();
+  wireAi();
   checkBrowser();
   updateFilenamePreview();
   updateStrength();

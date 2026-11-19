@@ -147,7 +147,7 @@ Future iterations under **KVM Labs** will explore Reed-Solomon forward error cor
 ## 6. Reference Implementations
 
 * **CLI Engine (`glyph.py`(optional ref encoder, planned for future CLI release)):** Cross-platform Python implementation utilizing `cryptography` and `Pillow`.
-* **Kaleidoscope Glyph (`web-vault/kaleidoscope-glyph/`):** The KGLYPH2 reference tool, in two fully cross-compatible forms: `glyph.py` (Python CLI) and `glyph.html` (single offline page with a *Simple Mode* interface and a strict Content-Security-Policy). Specified in `docs/SPEC-kglyph2.md`.
+* **Kaleidoscope Glyph (`web-vault/kaleidoscope-glyph/`):** The KGLYPH2 reference tool, in two fully cross-compatible forms: `glyph.py` (Python CLI) and `glyph.html` (single offline page with a *Simple Mode* interface, a strict Content-Security-Policy, and an optional on-device AI chat that uses WebGPU and downloads its model once on first use). Specified in `docs/SPEC-kglyph2.md`.
 * **Web / Mobile Vault (`index.html`):** Zero-dependency browser application utilizing `Web Crypto API` and `HTML5 Canvas`, cross-compatible with the `kvMk` binary specification.
 
 ---

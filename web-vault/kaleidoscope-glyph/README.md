@@ -11,6 +11,11 @@ Two versions, fully compatible with each other:
 
 After editing any script in `glyph.html`, run `python update_csp.py glyph.html` to refresh its security hashes.
 
+## Private AI chat (beta, `glyph.html` only)
+Press nothing and the page never touches the network. If your browser supports WebGPU, a chat card lets you run a small AI inside the browser, using your notes as its instructions. It checks the download size first, shows progress with Cancel Download, and has Stop Generating, New chat and Unload AI. *Suggest notes* proposes notes from the chat; nothing is added until you press Keep. Clear Session empties the chat and frees the AI's memory.
+
+What the security policy allows for this (and nothing else): the AI software from `cdn.jsdelivr.net/npm/` (pinned to `@mlc-ai/web-llm@0.2.82`), `'wasm-unsafe-eval'` so the AI can run, and model files from `huggingface.co`, `*.huggingface.co`, `*.hf.co` and `raw.githubusercontent.com`. Your notes, messages and passkey are never sent. Not yet tested against a real model on a real GPU: please report problems.
+
 ## Important to know
 - **No passkey recovery.** Lose the passkey and the notes are gone. A 4-word passphrase is suggested.
 - **Re-saving the PNG can erase the notes** (resize, screenshot, JPEG/WebP, many chat apps). Keep the original file.
