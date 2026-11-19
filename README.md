@@ -26,6 +26,16 @@ Unlike fragile high-density matrix grids, Kaleidoscope utilizes distinct, high-c
 
 ---
 
+## 🆕 Kaleidoscope Glyph (KGLYPH2): the easiest way to try it
+
+No extension needed. Open [`web-vault/kaleidoscope-glyph/glyph.html`](web-vault/kaleidoscope-glyph/glyph.html) in a browser (works offline), or run the Python version. Notes are locked with scrypt + AES-256-GCM into a PNG; only a date and short ID are visible. See the [tool README](web-vault/kaleidoscope-glyph/README.md) and [format spec](docs/SPEC-kglyph2.md).
+
+<p align="center"><img src="docs/glyph-pipeline.svg" alt="Kaleidoscope Glyph pipeline: notes, encryption, PNG glyph, key filter, AI" width="640" /></p>
+
+> **Less data held, lower AI cost per message, and nothing for the server to protect.** In an illustrative generated chat, sending filtered notes instead of the full history cut input tokens by about 99% (details in the whitepaper, Section 2.5). Limits: no passkey recovery, re-saving the PNG can erase the notes, and it has not been reviewed for healthcare use.
+
+---
+
 ## 📂 Project Repository Directory Tree
 This is how the repository is organized. To try the extension you only need the `extension/` folder:
 
@@ -52,8 +62,9 @@ Project-Kaleidoscope-KVMS-1.0/
 │   ├── README.md
 │   ├── glyph-forge/
 │   │   └── index.html       <- save notes as a flower glyph, restore them as an AI prompt
-│   └── pixel-vault/
-│       └── index.html       <- lock any text into a picture's pixels
+│   ├── pixel-vault/
+│   │   └── index.html       <- lock any text into a picture's pixels
+│   └── kaleidoscope-glyph/  <- KGLYPH2 tool: glyph.html (Simple Mode) + glyph.py
 └── docs/
     ├── README.md            <- guide to the documents below
     ├── SPEC-glyph-forge.md  <- the Glyph Forge file format as it works today
