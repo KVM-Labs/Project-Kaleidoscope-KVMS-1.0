@@ -47,3 +47,5 @@ Older copies, kept so nothing is lost.
 |---|---|
 | [archive/project-blueprint-second-copy.txt](archive/project-blueprint-second-copy.txt) | A second, slightly different version of the project blueprint |
 | [archive/file-checklist.txt](archive/file-checklist.txt) | An early checklist of planned files |
+
+- `glyph_savings.xlsx` — the savings model (illustrative), measured sizes, and an **Evolution Log** tab recording each version of the glyph tool (sizes, features, security changes).
