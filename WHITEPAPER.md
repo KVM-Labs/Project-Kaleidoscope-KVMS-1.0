@@ -132,6 +132,7 @@ Future iterations under **KVM Labs** will explore Reed-Solomon forward error cor
 ## 6. Reference Implementations
 
 * **CLI Engine (`glyph.py`, planned for a future release):** Cross-platform Python implementation utilizing `cryptography` and `Pillow`.
+* **Browser Extension (`extension/`):** Chrome-style extension that seals the current chat with the scheme in section 2.2 and saves it as a `kvMk` PNG. The result opens in the Web Vault below.
 * **Web / Mobile Vault (`index.html`):** Zero-dependency browser application utilizing `Web Crypto API` and `HTML5 Canvas`, cross-compatible with the `kvMk` binary specification.
 
 ---

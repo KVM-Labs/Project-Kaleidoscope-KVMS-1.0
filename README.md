@@ -17,7 +17,9 @@ When a user drops their 50KB custom PNG back into a fresh, blank multimodal AI i
 
 ---
 
-## 🎨 The 3-Axis Visual Data Layer Multiplexing Architecture
+## 🎨 The 3-Axis Visual Data Layer Multiplexing Architecture (planned design, not built yet)
+> **Status:** this section describes a future design for storing data directly in shapes, positions and colors. It is **not** how the current version works. Today the text is encrypted and hidden inside the PNG file itself (see `WHITEPAPER.md` section 2 and the format guides in `docs/`), and the picture is decoration generated from the encrypted data.
+
 Unlike fragile high-density matrix grids, Kaleidoscope utilizes distinct, high-contrast geometric paths rendered across a fixed 512x512 canvas coordinate matrix:
 1. **Axis A - Geometric Shape Vector (Intent):** Different shape structures (Triangles, Squares, Circles, Pentagons) categorize instruction types, system rules, and data schemas.
 2. **Axis B - Spatial Positioning (Context Map):** Exact X,Y pixel coordinates map chronological priorities and conceptual dependency vectors with a strict (0,0) origin point.
@@ -80,7 +82,10 @@ To load and test this prototype extension locally inside your preferred modern w
 1. Launch Firefox and type `about:debugging` into the URL search bar.
 2. Click on **This Firefox** in the left sidebar menu.
 3. Click the **Load Temporary Add-on...** button.
-4. Select the `manifest.json` file inside the `extension/` folder to register the service worker background layers.
+4. Select the `manifest.json` file inside the `extension/` folder.
+5. Firefox may ask you to allow the extension on websites (**Permissions** tab on `about:addons`). Temporary add-ons are removed when Firefox closes, so repeat these steps next time.
+
+> **Note:** the Firefox setup is prepared (it needs Firefox 115 or newer) but has **not been tested in Firefox yet**. Chrome, Brave and Edge are the tested browsers. If something doesn't work in Firefox, please open an issue.
 
 ---
 
@@ -88,7 +93,8 @@ To load and test this prototype extension locally inside your preferred modern w
 1. Navigate to any supported AI environment (`chatgpt.com`, `claude.ai`, or a Google AI page such as `gemini.google.com`).
 2. Click the Kaleidoscope icon (under the puzzle-piece Extensions menu) in your browser toolbar to open the small popup window.
 3. Enter your local secure validation passkey PIN and select your preferred visual camouflage layout style (e.g., Bauhaus Abstract Art).
-4. Click **Export** to compress and encrypt the current chat on your own computer and open it as a picture.
+4. Click **Export**. The chat is encrypted on your own computer and saved as `memory-glyph.png`. Keep it as a raw file: re-saving, resizing or posting it online can erase the hidden data.
+5. To read it again, open `web-vault/glyph-forge/index.html` in your browser, choose the PNG and type the same passkey. (A restore button inside the extension is not built yet.)
 
 ---
 
@@ -99,9 +105,14 @@ This software is a proof-of-concept prototype provided "as-is" for educational, 
 
 ### License
 
+Two licenses apply, matching the Zenodo record (DOI 10.5281/zenodo.24238012):
+
+* **Software** (`extension/`, `web-vault/`): MIT License, text below and in `LICENSE`.
+* **Paper and documents** (`WHITEPAPER.md`, `docs/`): [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). You may reuse them if you credit KVM Labs.
+
 Copyright (c) 2026 KVM Labs
 
-Project Kaleidoscope is released under the open-source **MIT License**. 
+The software is released under the open-source **MIT License**. 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

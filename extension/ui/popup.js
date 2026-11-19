@@ -25,6 +25,9 @@ statusMsg.style.color = "#10b981";
 statusMsg.innerText = "Vault Matrix Opening...";
 // Instantly open the canvas tab—the canvas will automatically pull the data!
 chrome.tabs.create({ url: chrome.runtime.getURL('ui/canvas_renderer.html') });
+} else {
+statusMsg.style.color = "#ef4444";
+statusMsg.innerText = "Error: " + ((cryptoResponse && cryptoResponse.error) || "could not seal the data.");
 }
 });
 return;
@@ -54,7 +57,10 @@ if (cryptoResponse && cryptoResponse.success) {
 statusMsg.style.color = "#10b981";
 statusMsg.innerText = "Vault Matrix Opening...";
 chrome.tabs.create({ url: chrome.runtime.getURL('ui/canvas_renderer.html') });
+} else {
+statusMsg.style.color = "#ef4444";
+statusMsg.innerText = "Error: " + ((cryptoResponse && cryptoResponse.error) || "could not seal the data.");
 }
 });
 });
-});
+});
