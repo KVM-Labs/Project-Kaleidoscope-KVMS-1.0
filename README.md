@@ -5,6 +5,8 @@
 
 <a href="https://doi.org/10.5281/zenodo.24238012"><img src="docs/doi-badge.svg" alt="DOI: 10.5281/zenodo.24238012" /></a>
 
+**Try it now, no install:** [Vault 3 (Kaleidoscope Glyph)](https://kvm-labs.github.io/vault-3/) · [All vaults](https://kvm-labs.github.io/vaults/) · [Project website](https://kvm-labs.github.io/)
+
 Project Kaleidoscope is a privacy-first, zero-cloud browser extension engineered to establish a universal standard for cross-browser human-AI interaction. It eliminates AI context-loss and reduces cloud data-center server strains by allowing users to compress, locally encrypt (AES-256-GCM), and render deep AI chat histories into a highly compact visual image file (a "Memory Glyph") that resembles abstract art. 
 
 <p align="center">
