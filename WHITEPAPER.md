@@ -146,17 +146,17 @@ Future iterations under **KVM Labs** will explore Reed-Solomon forward error cor
 
 ## 6. Reference Implementations
 
-* **CLI Engine (`glyph.py`(optional ref encoder, planned for future CLI release)):** Cross-platform Python implementation utilizing `cryptography` and `Pillow`.
 * **Kaleidoscope Glyph (`web-vault/kaleidoscope-glyph/`):** The KGLYPH2 reference tool, in two fully cross-compatible forms: `glyph.py` (Python CLI) and `glyph.html` (single offline page with a *Simple Mode* interface, a strict Content-Security-Policy, and an optional on-device AI chat that uses WebGPU and downloads its model once on first use). Specified in `docs/SPEC-kglyph2.md`.
+* **Browser Extension (`extension/`):** Chrome-style extension that seals the current chat with the scheme in section 2.2 and saves it as a `kvMk` PNG. The result opens in the Web Vault below.
 * **Web / Mobile Vault (`index.html`):** Zero-dependency browser application utilizing `Web Crypto API` and `HTML5 Canvas`, cross-compatible with the `kvMk` binary specification.
 
 ---
 
 ## 7. References & Related Work
 
-1. **Cheng, Z., et al. (2025).** *Glyph: Scaling Context Windows via Visual-Text Compression.* Tsinghua University & Zhipu AI. arXiv preprint [`arXiv:2510.17800`](https://arxiv.org).
-2. **DeepSeek-AI (2025).** *DeepSeek-OCR: Contexts Optical Compression.* arXiv preprint [`arXiv:2510.18234`](https://arxiv.org).
-3. **KVM Labs (2026).** *Project Kaleidoscope (KVMS-1.0): A Universal, High-Density Visual Data Standard for Offline AI Context Restoration.* Zenodo Archive. DOI: [`10.5281/zenodo.24238012`](https://doi.org).
+1. **Cheng, Z., et al. (2025).** *Glyph: Scaling Context Windows via Visual-Text Compression.* Tsinghua University & Zhipu AI. arXiv preprint [`arXiv:2510.17800`](https://arxiv.org/abs/2510.17800).
+2. **DeepSeek-AI (2025).** *DeepSeek-OCR: Contexts Optical Compression.* arXiv preprint [`arXiv:2510.18234`](https://arxiv.org/abs/2510.18234).
+3. **KVM Labs (2026).** *Project Kaleidoscope (KVMS-1.0): A Universal, High-Density Visual Data Standard for Offline AI Context Restoration.* Zenodo Archive. DOI: [`10.5281/zenodo.24238012`](https://doi.org/10.5281/zenodo.24238012).
 
 ---
 (KVM Labs)

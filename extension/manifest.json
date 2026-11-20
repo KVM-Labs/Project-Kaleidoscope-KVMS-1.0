@@ -1,22 +1,29 @@
 {
-"manifest_version": 3,
-"name": "Project Kaleidoscope (KVMS-1.0)",
-"version": "1.0.0",
-"description": "Local-First Lossless Visual Data Vaulting framework.",
-"author": "KVM Labs",
-"permissions": [
-"storage",
-"activeTab",
-"scripting"
-],
-"host_permissions": [
-"<all_urls>"
-],
-"action": {
-"default_popup": "ui/popup.html"
-},
-"background": {
-"service_worker": "background/worker.js",
-"type": "module"
-}
+  "manifest_version": 3,
+  "name": "Project Kaleidoscope (KVMS-1.0)",
+  "version": "1.0.1",
+  "description": "Local-First Lossless Visual Data Vaulting framework.",
+  "author": "KVM Labs",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "ui/popup.html"
+  },
+  "background": {
+    "service_worker": "background/worker.js",
+    "scripts": ["background/worker.js"],
+    "type": "module"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "kaleidoscope@kvm-labs.github.io",
+      "strict_min_version": "115.0"
+    }
+  }
 }
