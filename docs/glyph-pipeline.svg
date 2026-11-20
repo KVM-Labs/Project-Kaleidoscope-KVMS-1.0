@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">Kaleidoscope encrypted glyph pipeline</title><desc id="d">Save path: notes and rules are locked with scrypt and AES-256-GCM and hidden in a 768 by 768 PNG glyph. Load path: unlock the glyph, filter by musical key, and send a lean prompt to a local or cloud AI. An illustrative benchmark shows 200 messages reduced to 25 notes.</desc>
+<defs><linearGradient id="mintViolet" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#34e8b6"/><stop offset="1" stop-color="#9d6bff"/></linearGradient><linearGradient id="orb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#45f0c1"/><stop offset="1" stop-color="#8b63ff"/></linearGradient><linearGradient id="cardFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#171c36"/><stop offset="1" stop-color="#13172e"/></linearGradient></defs>
+<rect width="1200" height="800" rx="24" fill="#0d1021"/>
+<rect x="40" y="34" width="120" height="4" rx="2" fill="url(#mintViolet)"/>
+<text x="40" y="68"  font-size="24" font-weight="700" fill="#f4f6ff" text-anchor="start">Kaleidoscope Glyph: how a session becomes one locked picture</text>
+<text x="40" y="92"  font-size="14" font-weight="400" fill="#8e96b8" text-anchor="start">Distilled rules instead of long transcripts · KGLYPH2 encryption in your browser · no server in the middle</text>
+<rect x="860" y="40" width="300" height="36" rx="18" fill="#171c36" stroke="#2d355e" stroke-width="1.2"/><circle cx="882" cy="58" r="5" fill="#34e8b6"/>
+<text x="896" y="63"  font-size="12.5" font-weight="600" fill="#dce2ff" text-anchor="start">On your device · 0 KB held by a server</text>
+<text x="40" y="134"  font-size="11" font-weight="700" fill="#34e8b6" text-anchor="start" letter-spacing="1.5">SAVE</text>
+<rect x="84" y="129" width="616" height="2" rx="1" fill="#34e8b6" fill-opacity="0.35"/>
+<text x="730" y="134"  font-size="11" font-weight="700" fill="#9d6bff" text-anchor="start" letter-spacing="1.5">LOAD LATER</text>
+<rect x="820" y="129" width="340" height="2" rx="1" fill="#9d6bff" fill-opacity="0.45"/>
+<rect x="40" y="150" width="200" height="170" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<circle cx="70" cy="182" r="14" fill="url(#orb)"/>
+<text x="70" y="187"  font-size="13" font-weight="800" fill="#0d1021" text-anchor="middle">1</text>
+<text x="92" y="187"  font-size="15.5" font-weight="700" fill="#f4f6ff" text-anchor="start">Notes &amp; Rules</text>
+<text x="58" y="228"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Distill long chats into</text>
+<text x="58" y="249"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">compact facts, goals and</text>
+<text x="58" y="270"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">priority rules, plus a title.</text>
+<line x1="244" y1="235.0" x2="262" y2="235.0" stroke="#34e8b6" stroke-width="2.5"/>
+<polygon points="260,229.0 270,235.0 260,241.0" fill="#34e8b6"/>
+<rect x="270" y="150" width="200" height="170" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<circle cx="300" cy="182" r="14" fill="url(#orb)"/>
+<text x="300" y="187"  font-size="13" font-weight="800" fill="#0d1021" text-anchor="middle">2</text>
+<text x="322" y="187"  font-size="12" font-weight="700" fill="#f4f6ff" text-anchor="start">scrypt + AES-256-GCM</text>
+<text x="288" y="228"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Passkey becomes the key</text>
+<text x="288" y="249"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">(N=32768, r=8, p=3).</text>
+<text x="288" y="270"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Header and title locked in.</text>
+<line x1="474" y1="235.0" x2="492" y2="235.0" stroke="#34e8b6" stroke-width="2.5"/>
+<polygon points="490,229.0 500,235.0 490,241.0" fill="#34e8b6"/>
+<rect x="500" y="150" width="200" height="170" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<circle cx="530" cy="182" r="14" fill="url(#orb)"/>
+<text x="530" y="187"  font-size="13" font-weight="800" fill="#0d1021" text-anchor="middle">3</text>
+<text x="552" y="187"  font-size="14" font-weight="700" fill="#f4f6ff" text-anchor="start">768×768 PNG Glyph</text>
+<text x="518" y="228"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Locked data is padded and</text>
+<text x="518" y="249"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">kept in PNG chunks.</text>
+<text x="518" y="270"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">You hold the file.</text>
+<line x1="704" y1="235.0" x2="722" y2="235.0" stroke="#9d6bff" stroke-width="2.5" stroke-dasharray="3 4"/>
+<polygon points="720,229.0 730,235.0 720,241.0" fill="#9d6bff"/>
+<rect x="730" y="150" width="200" height="170" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<circle cx="760" cy="182" r="14" fill="url(#orb)"/>
+<text x="760" y="187"  font-size="13" font-weight="800" fill="#0d1021" text-anchor="middle">4</text>
+<text x="782" y="187"  font-size="12" font-weight="700" fill="#f4f6ff" text-anchor="start">Musical-Key Filter</text>
+<text x="748" y="228"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Unlock, then pick active</text>
+<text x="748" y="249"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">keys. Auto-Tune keeps the</text>
+<text x="748" y="270"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">top-priority notes in budget.</text>
+<line x1="934" y1="235.0" x2="952" y2="235.0" stroke="#34e8b6" stroke-width="2.5"/>
+<polygon points="950,229.0 960,235.0 950,241.0" fill="#34e8b6"/>
+<rect x="960" y="150" width="200" height="170" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<circle cx="990" cy="182" r="14" fill="url(#orb)"/>
+<text x="990" y="187"  font-size="13" font-weight="800" fill="#0d1021" text-anchor="middle">5</text>
+<text x="1012" y="187"  font-size="14" font-weight="700" fill="#f4f6ff" text-anchor="start">Local / Cloud AI</text>
+<text x="978" y="228"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Send a lean prompt.</text>
+<text x="978" y="249"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Local WebGPU chat is the</text>
+<text x="978" y="270"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">next step (planned).</text>
+<rect x="40" y="344" width="545" height="222" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<circle cx="128" cy="456" r="64" fill="#0d1021" stroke="#2d355e" stroke-width="1.5"/>
+<circle cx="180.0" cy="456.0" r="6.3" fill="#34e8b6"/>
+<circle cx="173.0" cy="482.0" r="6.3" fill="#9d6bff"/>
+<circle cx="154.0" cy="501.0" r="6.3" fill="#f6b26b"/>
+<circle cx="128.0" cy="508.0" r="6.3" fill="#5b9bff"/>
+<circle cx="102.0" cy="501.0" r="6.3" fill="#e06c75"/>
+<circle cx="83.0" cy="482.0" r="6.3" fill="#34e8b6"/>
+<circle cx="76.0" cy="456.0" r="6.3" fill="#9d6bff"/>
+<circle cx="83.0" cy="430.0" r="6.3" fill="#f6b26b"/>
+<circle cx="102.0" cy="411.0" r="6.3" fill="#5b9bff"/>
+<circle cx="128.0" cy="404.0" r="6.3" fill="#e06c75"/>
+<circle cx="154.0" cy="411.0" r="6.3" fill="#34e8b6"/>
+<circle cx="173.0" cy="430.0" r="6.3" fill="#9d6bff"/>
+<circle cx="163.8" cy="465.2" r="5.6" fill="#9d6bff"/>
+<circle cx="151.6" cy="484.5" r="5.6" fill="#f6b26b"/>
+<circle cx="130.4" cy="492.9" r="5.6" fill="#5b9bff"/>
+<circle cx="108.2" cy="487.3" r="5.6" fill="#e06c75"/>
+<circle cx="93.6" cy="469.7" r="5.6" fill="#34e8b6"/>
+<circle cx="92.2" cy="446.8" r="5.6" fill="#9d6bff"/>
+<circle cx="104.4" cy="427.5" r="5.6" fill="#f6b26b"/>
+<circle cx="125.6" cy="419.1" r="5.6" fill="#5b9bff"/>
+<circle cx="147.8" cy="424.7" r="5.6" fill="#e06c75"/>
+<circle cx="162.4" cy="442.3" r="5.6" fill="#34e8b6"/>
+<circle cx="147.3" cy="466.5" r="5" fill="#f6b26b"/>
+<circle cx="128.5" cy="478.0" r="5" fill="#5b9bff"/>
+<circle cx="109.2" cy="467.4" r="5" fill="#e06c75"/>
+<circle cx="108.7" cy="445.5" r="5" fill="#34e8b6"/>
+<circle cx="127.5" cy="434.0" r="5" fill="#9d6bff"/>
+<circle cx="146.8" cy="444.6" r="5" fill="#f6b26b"/>
+<circle cx="128" cy="456" r="8" fill="#f6b26b"/>
+<text x="224" y="380"  font-size="12" font-weight="700" fill="#34e8b6" text-anchor="start" letter-spacing="0.8">MEASURED EXAMPLE</text>
+<text x="224" y="410"  font-size="21" font-weight="700" fill="#f4f6ff" text-anchor="start">200 messages → 25 notes</text>
+<text x="224" y="440" font-size="13.5" fill="#c4cce8">• <tspan fill="#f4f6ff" font-weight="600">AI context:</tspan> ~33,300 → <tspan fill="#34e8b6" font-weight="700">~600 tokens (-98%)</tspan></text>
+<text x="224" y="466" font-size="13.5" fill="#c4cce8">• <tspan fill="#f4f6ff" font-weight="600">Text:</tspan> 130 KB transcript → 2.4 KB of notes</text>
+<text x="224" y="492" font-size="13.5" fill="#c4cce8">• <tspan fill="#f4f6ff" font-weight="600">Locked data:</tspan> 16 KB, padded so size hides length</text>
+<text x="224" y="518" font-size="13.5" fill="#c4cce8">• <tspan fill="#f4f6ff" font-weight="600">Portable file:</tspan> ~300 KB PNG (0 KB on a server)</text>
+<text x="224" y="548"  font-size="11.5" font-weight="400" fill="#8e96b8" text-anchor="start">Generated chat for illustration; your results will differ.</text>
+<rect x="615" y="344" width="545" height="222" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<text x="642" y="378"  font-size="15" font-weight="700" fill="#f4f6ff" text-anchor="start">Input tokens over the next 50 messages</text>
+<rect x="642" y="398" width="6" height="30" rx="3" fill="#e06c75"/>
+<text x="660" y="411"  font-size="12.5" font-weight="600" fill="#f4f6ff" text-anchor="start">Resend full transcript every time</text>
+<text x="1134" y="411"  font-size="12.5" font-weight="700" fill="#e06c75" text-anchor="end">~1,870,000 tokens · baseline</text>
+<rect x="660" y="417" width="474" height="6" rx="3" fill="#212747"/>
+<rect x="660" y="417" width="474.0" height="6" rx="3" fill="#e06c75"/>
+<rect x="642" y="432" width="6" height="30" rx="3" fill="#5b9bff"/>
+<text x="660" y="445"  font-size="12.5" font-weight="600" fill="#f4f6ff" text-anchor="start">Send all 25 glyph notes</text>
+<text x="1134" y="445"  font-size="12.5" font-weight="700" fill="#5b9bff" text-anchor="end">~30,000 tokens · -98.4%</text>
+<rect x="660" y="451" width="474" height="6" rx="3" fill="#212747"/>
+<rect x="660" y="451" width="7.7" height="6" rx="3" fill="#5b9bff"/>
+<rect x="642" y="466" width="6" height="30" rx="3" fill="#34e8b6"/>
+<text x="660" y="479"  font-size="12.5" font-weight="600" fill="#f4f6ff" text-anchor="start">Key-filtered notes (Goals, Tone, Legal)</text>
+<text x="1134" y="479"  font-size="12.5" font-weight="700" fill="#34e8b6" text-anchor="end">~6,500 tokens · -99.65%</text>
+<rect x="660" y="485" width="474" height="6" rx="3" fill="#212747"/>
+<rect x="660" y="485" width="3.0" height="6" rx="3" fill="#34e8b6"/>
+<rect x="642" y="500" width="6" height="30" rx="3" fill="#9d6bff"/>
+<text x="660" y="513"  font-size="12.5" font-weight="600" fill="#f4f6ff" text-anchor="start">Chat data held on a server</text>
+<text x="1134" y="513"  font-size="12.5" font-weight="700" fill="#9d6bff" text-anchor="end">0 KB · nothing to protect</text>
+<rect x="660" y="519" width="474" height="6" rx="3" fill="#212747"/>
+<text x="642" y="554"  font-size="11.5" font-weight="400" fill="#8e96b8" text-anchor="start">Bars are to scale. The saving comes from distilled notes, not from encryption.</text>
+<rect x="40.0" y="586" width="363" height="126" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<rect x="56.0" y="586" width="331" height="4" rx="2" fill="#34e8b6"/>
+<text x="60.0" y="622"  font-size="16" font-weight="700" fill="#f4f6ff" text-anchor="start">Zero server liability</text>
+<text x="60.0" y="648"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Users keep their own glyph file.</text>
+<text x="60.0" y="668"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Your server holds no chat data,</text>
+<text x="60.0" y="688"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">so there is nothing to breach.</text>
+<rect x="418.5" y="586" width="363" height="126" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<rect x="434.5" y="586" width="331" height="4" rx="2" fill="#5b9bff"/>
+<text x="438.5" y="622"  font-size="16" font-weight="700" fill="#f4f6ff" text-anchor="start">Up to 99% fewer AI tokens</text>
+<text x="438.5" y="648"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Only the notes that matter are</text>
+<text x="438.5" y="668"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">sent each time. The more you</text>
+<text x="438.5" y="688"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">filter, the smaller the prompt.</text>
+<rect x="797.0" y="586" width="363" height="126" rx="16" fill="url(#cardFill)" stroke="#2a325a" stroke-width="1.4"/>
+<rect x="813.0" y="586" width="331" height="4" rx="2" fill="#f6b26b"/>
+<text x="817.0" y="622"  font-size="16" font-weight="700" fill="#f4f6ff" text-anchor="start">Honest PNG limits</text>
+<text x="817.0" y="648"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Locked data lives in PNG chunks.</text>
+<text x="817.0" y="668"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">Send the file itself: apps that</text>
+<text x="817.0" y="688"  font-size="12.5" font-weight="400" fill="#a0a8cc" text-anchor="start">compress images erase it.</text>
+<text x="40" y="744"  font-size="12.5" font-weight="400" fill="#8e96b8" text-anchor="start">No passkey reset: a forgotten passkey cannot be recovered. Old KGLYPH1 glyphs still open. Not a clinical records system.</text>
+<text x="40" y="764"  font-size="12.5" font-weight="400" fill="#8e96b8" text-anchor="start">Percentages come from one generated example chat (about 33,300 tokens of history). Real chats, models and apps vary.</text>
+</svg>

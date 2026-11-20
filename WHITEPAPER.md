@@ -12,7 +12,7 @@
 
 Modern Large Language Models (LLMs) suffer from three structural bottlenecks in daily multi-turn workflows: **rapidly growing token cost** (stateless models re-read the full conversation history on every turn, so the total number of tokens processed over a session grows quadratically with the number of turns), **vendor lock-in** (proprietary cloud memory silos), and **privacy exposure** when storing sensitive project instructions on external servers.
 
-This paper introduces **Project Kaleidoscope**, a client-side context compression and portable memory protocol developed by **KVM Labs**. Project Kaleidoscope distills conversational constraints into atomic, priority-weighted JSON nodes, seals them locally via **PBKDF2-HMAC-SHA256** and **AES-256-GCM** authenticated encryption, and embeds the ciphertext inside a lossless PNG binary chunk (`kvMk`). To give each file a recognizable visual identity that reveals nothing about the text of the notes, the system renders a deterministic 12-fold symmetric kaleidoscope glyph seeded from the **SHA-256 hash of the encrypted ciphertext**; the picture is decorative, and integrity is provided by the authenticated encryption, not by the picture. Finally, we introduce **Harmonic Context Routing (HCR)** and **6-Stream Graph Traversal**, an intuitive musical-key bitmasking and token-budgeting layer that bounds the size of the active prompt by a user-set token budget (250 tokens by default), however many notes are stored, while keeping cryptographic keys exclusively in the user's hands.
+This paper introduces **Project Kaleidoscope**, a client-side context compression and portable memory protocol developed by **KVM Labs**. Project Kaleidoscope distills conversational constraints into atomic, priority-weighted JSON nodes, seals them locally via **scrypt** (memory-hard key derivation) and **AES-256-GCM** authenticated encryption, and embeds the ciphertext inside a lossless PNG binary chunk (`kvMk`). To give each file a recognizable visual identity that reveals nothing about the text of the notes, the system renders a deterministic 12-fold symmetric kaleidoscope glyph seeded from the **SHA-256 hash of the encrypted ciphertext**; the picture is decorative, and integrity is provided by the authenticated encryption, not by the picture. Finally, we introduce **Harmonic Context Routing (HCR)** and **6-Stream Graph Traversal**, an intuitive musical-key bitmasking and token-budgeting layer that bounds the size of the active prompt by a user-set token budget (250 tokens by default), however many notes are stored, while keeping cryptographic keys exclusively in the user's hands.
 
 ---
 
@@ -38,7 +38,8 @@ Instead of saving verbose conversational transcripts, session state is distilled
 
 ```json
 {
-  "v": 1,
+  "v": 2,
+  "title": "Project handoff",
   "defaultKey": "C_MAJOR",
   "nodes": [
     {
@@ -53,9 +54,9 @@ Instead of saving verbose conversational transcripts, session state is distilled
 
 ### 2.2 Client-Side Authenticated Encryption
 All cryptographic operations execute 100% locally in the client environment (via Python `cryptography` or the browser `Web Crypto API`):
-1. **Key Derivation:** A user-supplied passkey $P$ and a cryptographically random 16-byte salt $S$ are processed through **PBKDF2-HMAC-SHA256** (100,000 iterations) to derive a 256-bit key $K$.
-2. **Authenticated Encryption:** The serialized JSON payload is encrypted using **AES-256-GCM** with a random 12-byte initialization vector $IV$, producing ciphertext $C$ and a 128-bit authentication tag that prevents silent tampering.
-3. **Lossless PNG Chunk Injection:** The binary tuple $(S \parallel IV \parallel C)$ is injected into a custom ancillary PNG chunk named `kvMk` immediately preceding the terminal `IEND` chunk, complete with a valid CRC-32 checksum.
+1. **Key Derivation:** A user-supplied passkey $P$ and a cryptographically random 16-byte salt $S$ are processed through **scrypt** (default $N=32768$, $r=8$, $p=3$) to derive a 256-bit key $K$. The cost settings are stored in the file header. Readers enforce safety caps ($N \le 2^{17}$, $r \le 8$, $p \le 8$) *before* any slow work, so a hostile file cannot force a denial-of-service. Older files (KGLYPH1: $N=32768$, $r=8$, $p=1$) remain readable.
+2. **Authenticated Encryption (KGLYPH2):** The title and notes are serialized, compressed, length-prefixed and zero-padded to a size bucket (16 KB / 64 KB / 256 KB / ~499 KB) so the file size does not reveal how much was saved. They are encrypted with **AES-256-GCM** using a random 12-byte nonce. The 41-byte header (`"KGLYPH2"` ‖ $N$ ‖ $r$ ‖ $p$ ‖ $S$ ‖ nonce) is bound as **Additional Authenticated Data (AAD)**, so any change to the header or ciphertext is detected. The title is *inside* the encrypted payload, so no readable label leaks.
+3. **PNG Chunk Storage:** The payload `"KGLYPH2" ‖ N ‖ r ‖ p ‖ S ‖ nonce ‖ C` is base64-encoded and stored in a standard PNG `tEXt` chunk named `kaleidoscope`, placed before the terminal `IEND` chunk, with a valid CRC-32. A PNG is a list of chunks; viewers ignore chunks they do not know, so the picture displays normally. The same reason explains the fragility: any program that re-saves the image and does not copy unknown chunks (including a plain lossless re-save, a resize, or JPEG/WebP conversion) erases the data. The visible border (`KVMS-1.0 · date · ID`) and filename carry only a date and a short fingerprint, never content.
 
 ### 2.3 Ciphertext-Seeded Art Generation
 So that the visual artwork reveals nothing about the text of the underlying rules, the kaleidoscope renderer is seeded only from the cryptographic digest of the ciphertext:
@@ -74,6 +75,20 @@ The encrypted record can instead be hidden in the least significant bit of each 
 | **Resize, or JPEG/WebP conversion** | Data lost | Data lost |
 
 Neither variant survives lossy handling, so each is paired with a separate encrypted backup file. Which is preferable depends on whether capacity or resilience to lossless re-saves matters more.
+
+---
+
+### 2.5 Measured Effect on Token Cost (Illustrative Benchmark)
+The following is a *generated* 200-message chat (about 33,292 tokens) distilled to 25 notes (about 606 tokens). It illustrates the mechanism and is not a measurement of real user conversations. Sending 50 messages' worth of context:
+
+| Approach | Input tokens | Change |
+| :--- | ---: | ---: |
+| Resend the full chat each turn | 1,868,513 | baseline |
+| Send all 25 notes | 30,300 | -98.4% |
+| Send filtered notes (Goals, Tone, Legal; budget 150) | 6,500 | -99.65% |
+| Chat data held on the server | 0 | — |
+
+**Less data held, lower AI cost per message, and nothing for the server to protect.** Honest limits: the glyph PNG itself is larger (about 300 KB) than the locked data (about 16 KB), so the saving comes from sending distilled notes, not from a smaller file; there is no passkey recovery; and a server is only zero-knowledge if it never sees the passkey. Unlocking is deliberately slow (scrypt), which is a cost an attacker can try to exploit on a public endpoint. Healthcare or other regulated use needs a separate compliance review.
 
 ---
 
@@ -132,6 +147,7 @@ Future iterations under **KVM Labs** will explore Reed-Solomon forward error cor
 ## 6. Reference Implementations
 
 * **CLI Engine (`glyph.py`(optional ref encoder, planned for future CLI release)):** Cross-platform Python implementation utilizing `cryptography` and `Pillow`.
+* **Kaleidoscope Glyph (`web-vault/kaleidoscope-glyph/`):** The KGLYPH2 reference tool, in two fully cross-compatible forms: `glyph.py` (Python CLI) and `glyph.html` (single offline page with a *Simple Mode* interface, a strict Content-Security-Policy, and an optional on-device AI chat that uses WebGPU and downloads its model once on first use). Specified in `docs/SPEC-kglyph2.md`.
 * **Web / Mobile Vault (`index.html`):** Zero-dependency browser application utilizing `Web Crypto API` and `HTML5 Canvas`, cross-compatible with the `kvMk` binary specification.
 
 ---
