@@ -17,6 +17,7 @@ Press nothing and the page never touches the network. If your browser supports W
 What the security policy allows for this (and nothing else): the AI software from `cdn.jsdelivr.net/npm/` (pinned to `@mlc-ai/web-llm@0.2.82`), `'wasm-unsafe-eval'` so the AI can run, and model files from `huggingface.co`, `*.huggingface.co`, `*.hf.co` and `raw.githubusercontent.com`. Your notes, messages and passkey are never sent. Not yet tested against a real model on a real GPU: please report problems.
 
 ## Important to know
+- **Messaging apps can strip the hidden data.** WhatsApp, iMessage and screenshots re-save pictures and drop the locked data. After saving, press **Copy locked text** and keep that text as a backup. In Load Glyph, open "Paste locked text instead" to unlock from it. The text is the same locked data, so it is just as private: it needs the passkey.
 - **No passkey recovery.** Lose the passkey and the notes are gone. A 4-word passphrase is suggested.
 - **Re-saving the PNG can erase the notes** (resize, screenshot, JPEG/WebP, many chat apps). Keep the original file.
 - **The glyph is not smaller than your data.** The PNG is about 300 KB; the saving comes from sending short distilled notes to an AI instead of the whole chat.

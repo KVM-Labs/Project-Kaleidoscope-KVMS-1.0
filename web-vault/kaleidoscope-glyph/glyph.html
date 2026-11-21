@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-i9/s1BEALoQw+IgGBHuY9Ctyi9KT+2pKRbANMeAZnVI=' 'sha256-ZWgLGEvN5Z3SGI+QJ4KA13VZhjHV4gOaV5bM1f9KmI8=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+dfMZ9i8K+gwsG3kAoL81ZL2sGKztC3NiQNdIIKRZFU=' 'sha256-joWTuFoXJJ8mih4Z4w/Ra0bYh/mQ4tE65FOGZcX3m9M=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph</title>
 <!--
   Kaleidoscope Glyph, browser version (file format KGLYPH2)
@@ -360,6 +360,8 @@
       <img class="preview" id="preview" alt="Your new glyph" hidden>
       <div class="gid" id="gid"></div>
       <a class="dl" id="dlLink" hidden>Download again</a>
+      <p class="hint" style="margin-top:12px">Some apps (WhatsApp, iMessage, screenshots) strip the hidden data from pictures. As a backup, copy the locked text and keep it somewhere safe. It is just as private as the picture: it cannot be opened without your passkey.</p>
+      <div class="rowbtns"><button class="ghost" id="copyLockedBtn" type="button">Copy locked text</button><span id="copyLockedMsg" class="msg ok" style="margin:0"></span></div>
       <div class="rowbtns" style="margin-top:12px"><button class="primary" id="saveDone" type="button">Done</button></div>
     </div>
   </div>
@@ -372,6 +374,9 @@
     <label class="drop" id="drop" for="fileIn"><span id="dropText">Drop a glyph PNG here, or click to choose</span></label>
     <input type="file" id="fileIn" accept="image/png,.png" hidden>
     <img class="preview" id="loadPreview" alt="Chosen glyph" hidden>
+    <details id="pasteBox" style="margin:10px 0"><summary>Picture lost its hidden data? Paste locked text instead</summary>
+      <textarea id="pasteIn" rows="3" spellcheck="false" placeholder="Paste the locked text that starts with KVMS1:" aria-label="Locked text" style="margin-top:8px"></textarea>
+    </details>
     <div class="field"><label for="openPw">Passkey</label><input type="password" id="openPw" autocomplete="current-password"></div>
     <label class="check"><input type="checkbox" id="keepPass2"> Keep unlocked for quick re-save until I press Clear Session (or 15 minutes of inactivity)</label>
     <div class="rowbtns">
@@ -404,7 +409,7 @@ const DEFAULT_PARAMS = {N: 32768, r: 8, p: 3};
 const V1_PARAMS = {N: 32768, r: 8, p: 1};
 const MIN_N = 16384, MAX_N = 131072, MAX_R = 8, MAX_P = 8;   // safety limits, same as glyph.py
 const HEADER_V2_LEN = MAGIC.length + 4 + 1 + 1 + SALT_LEN + NONCE_LEN;   // 41 bytes
-const NO_DATA_MSG = "No hidden glyph data found. This image was probably compressed, resized or re-saved by an app or website. Use the original glyph file.";
+const NO_DATA_MSG = "No hidden glyph data found. This image was probably compressed, resized or re-saved by an app or website. Use the original glyph file, or paste the locked text if you copied it when you saved.";
 const WRONG_KEY_MSG = "Wrong passkey, or the glyph file was modified.";
 const NOT_GLYPH_MSG = "This does not look like a Kaleidoscope glyph.";
 const UNSAFE_MSG = "This glyph asks for lock settings outside the safe limits, so it was not opened.";
@@ -927,6 +932,20 @@ function extractPayload(png) {
   try { return b64decode(text); } catch (e) { throw new Error(NOT_GLYPH_MSG); }
 }
 
+/* ---------- locked text: the same locked data as plain text, for apps that strip the hidden PNG data ---------- */
+const TEXT_PREFIX = "KVMS1";
+function lockedTextFor(payload, id) { return TEXT_PREFIX + ":" + id + ":" + b64encode(payload); }
+async function payloadFromText(text) {
+  const clean = String(text).replace(/\s+/g, "");
+  const m = /^KVMS1:([0-9a-f]{8}):([A-Za-z0-9+\/]+={0,2})$/i.exec(clean);
+  if (!m) throw new Error("This text does not look like locked glyph text. It should start with " + TEXT_PREFIX + ": and be one long run of letters and numbers.");
+  let payload;
+  try { payload = b64decode(m[2]); } catch (e) { throw new Error(NOT_GLYPH_MSG); }
+  const id = bytesToHex(await sha256(payload)).slice(0, 8);
+  if (id !== m[1].toLowerCase()) throw new Error("The text is incomplete or was changed (some apps cut long messages). Copy it again from the original.");
+  return payload;
+}
+
 /* ---------- the artwork plan (drawn from the fingerprint, never from your text) ---------- */
 
 function makeRng(fp) {
@@ -1371,15 +1390,7 @@ function planArt(fp, size) {
     });
 
     $("#copyBtn").addEventListener("click", async () => {
-      const text = $("#prompt").value;
-      let ok = false;
-      try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { /* fall back below */ }
-      if (!ok) {
-        const tmp = h("textarea", {"aria-hidden": "true", style: "position:fixed;left:-9999px;top:0"});
-        tmp.value = text; document.body.append(tmp); tmp.select();
-        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-        tmp.remove();
-      }
+      const ok = await copyToClipboard($("#prompt").value);
       const msg = $("#copyMsg");
       msg.textContent = ok ? "Copied" : "Open Advanced and press Ctrl+C";
       setTimeout(() => { msg.textContent = ""; }, 2000);
@@ -1538,6 +1549,8 @@ function planArt(fp, size) {
       const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
       const png = new Uint8Array(await pngBlob.arrayBuffer());
       const finalPng = pngInjectText(png, PNG_FIELD, b64encode(payload));
+      lockedText = lockedTextFor(payload, id);
+      $("#copyLockedMsg").textContent = "";
       const blob = new Blob([finalPng], {type: "image/png"});
       const name = glyphFilename(session, id);
 
@@ -1569,6 +1582,19 @@ function planArt(fp, size) {
 
   /* ---------- Load Glyph ---------- */
 
+  let lockedText = null;       // locked text of the glyph just saved (only kept in memory)
+  async function copyToClipboard(text) {
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { /* fall back below */ }
+    if (!ok) {
+      const tmp = h("textarea", {"aria-hidden": "true", style: "position:fixed;left:-9999px;top:0"});
+      tmp.value = text; document.body.append(tmp); tmp.select();
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      tmp.remove();
+    }
+    return ok;
+  }
+
   function chooseFile(file) {
     openFile = file || null;
     $("#dropText").textContent = file ? file.name : "Drop a glyph PNG here, or click to choose";
@@ -1591,15 +1617,17 @@ function planArt(fp, size) {
 
   async function doOpen() {
     setMsg("#openMsg", "");
-    if (!openFile) return setMsg("#openMsg", "Choose a glyph PNG first.", "err");
+    const pasted = $("#pasteIn").value.trim();
+    if (!openFile && !pasted) return setMsg("#openMsg", "Choose a glyph PNG first, or paste the locked text.", "err");
     const pw = $("#openPw").value;
     if (!pw) return setMsg("#openMsg", "Type the passkey.", "err");
 
     busy("open", true);
     openCancel = {cancelled: false};
     try {
-      const png = new Uint8Array(await openFile.arrayBuffer());
-      const payload = extractPayload(png);          // "no hidden glyph data" problems show up here
+      const payload = pasted
+        ? await payloadFromText(pasted)
+        : extractPayload(new Uint8Array(await openFile.arrayBuffer()));   // "no hidden glyph data" problems show up here
       setMsg("#openMsg", "Unlocking… this takes a few seconds.");
       setProgress("#openProg", 0);
       const session = await decryptSession(payload, pw, f => setProgress("#openProg", f), openCancel);
@@ -1614,9 +1642,9 @@ function planArt(fp, size) {
       loadNodes(nodes, labels);
       markSaved();
       if ($("#keepPass2").checked) rememberPass(pw);
-      setStatus("Unlocked " + nodes.length + " notes from " + openFile.name + "." +
+      setStatus("Unlocked " + nodes.length + " notes from " + (pasted ? "the pasted text" : openFile.name) + "." +
         (state.title ? " Title: " + state.title + "." : ""), "ok");
-      $("#openPw").value = "";
+      $("#openPw").value = ""; $("#pasteIn").value = "";
       $("#loadDlg").close();
     } catch (e) {
       setMsg("#openMsg", e.message, e.message === CANCELLED_MSG ? "" : "err");
@@ -1637,7 +1665,8 @@ function planArt(fp, size) {
     state.title = ""; state.started = false;
     state.limit = true; state.budget = AUTO_BUDGET;
     loadNodes([], {});
-    for (const id of ["#saveTitle", "#savePw", "#savePw2", "#openPw"]) $(id).value = "";
+    for (const id of ["#saveTitle", "#savePw", "#savePw2", "#openPw", "#pasteIn"]) $(id).value = "";
+    lockedText = null; $("#copyLockedMsg").textContent = "";
     $("#suggestTip").hidden = true;
     setMsg("#saveMsg", ""); setMsg("#openMsg", ""); setStatus("");
     chooseFile(null);
@@ -1658,6 +1687,10 @@ function planArt(fp, size) {
     $("#saveBtn").addEventListener("click", () => doSave(false));
     $("#quickBtn").addEventListener("click", () => doSave(true));
     $("#openBtn").addEventListener("click", doOpen);
+    $("#copyLockedBtn").addEventListener("click", async () => {
+      if (!lockedText) return;
+      $("#copyLockedMsg").textContent = (await copyToClipboard(lockedText)) ? "Copied" : "Could not copy. Press Download again and keep the picture.";
+    });
     $("#openPw").addEventListener("keydown", e => { if (e.key === "Enter") doOpen(); });
     $("#savePw2").addEventListener("keydown", e => { if (e.key === "Enter") doSave(false); });
     $("#saveCancel").addEventListener("click", () => { if (saveCancel) saveCancel.cancelled = true; });
@@ -1667,7 +1700,7 @@ function planArt(fp, size) {
     $("#loadX").addEventListener("click", () => $("#loadDlg").close());
     // closing a window stops any lock or unlock still running in it, and empties its passkey boxes
     $("#saveDlg").addEventListener("close", () => { if (saveCancel) saveCancel.cancelled = true; for (const id of ["#savePw", "#savePw2"]) $(id).value = ""; });
-    $("#loadDlg").addEventListener("close", () => { if (openCancel) openCancel.cancelled = true; $("#openPw").value = ""; });
+    $("#loadDlg").addEventListener("close", () => { if (openCancel) openCancel.cancelled = true; $("#openPw").value = ""; $("#pasteIn").value = ""; });
     $("#clearSessionBtn").addEventListener("click", () => {
       if (hasContent() && snapshot() !== savedSnapshot &&
           !confirm("Clear this session? Notes, labels, title, passkeys and previews are removed from this page. Saved glyph files are not touched.")) return;
