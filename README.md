@@ -46,7 +46,7 @@ No extension needed. Open [`web-vault/kaleidoscope-glyph/glyph.html`](web-vault/
 **Kaleidoscope Glyph** is built as a vendor-neutral, open specification (`KVMS-1.0`) for private, user-held AI memory. AI chat interfaces, local LLM frontends, and privacy-focused platforms can import and export KVMS PNG glyphs (the current file format is KGLYPH2, see the [format spec](docs/SPEC-kglyph2.md)) so users carry their own encrypted context without central server storage overhead.
 
 - **Individual & Open-Source Use:** Free forever under the MIT License.
-- **Enterprise Integrations & Custom Deployments:** Looking to integrate native Glyph support, white-label branding, or custom security workflows into your platform? Open an issue or reach out to **KVM Labs**.
+- **Enterprise Integrations & Custom Deployments:** Looking to integrate native Glyph support, white-label branding, or custom security workflows into your platform? Open an issue or email **KVM Labs** at [kvmlabs@proton.me](mailto:kvmlabs@proton.me).
 
 ## 📂 Project Repository Directory Tree
 This is how the repository is organized. To try the extension you only need the `extension/` folder:
