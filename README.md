@@ -5,7 +5,7 @@
 
 <a href="https://doi.org/10.5281/zenodo.24238012"><img src="docs/doi-badge.svg" alt="DOI: 10.5281/zenodo.24238012" /></a>
 
-**Try it now, no install:** [Vault 3 (Kaleidoscope Glyph)](https://kvm-labs.github.io/vault/) · [All vaults](https://kvm-labs.github.io/vaults/) · [Project website](https://kvm-labs.github.io/)
+**Try it now, no install:** [Vault 3 (Kaleidoscope Glyph)](https://kvm-labs.github.io/vault3/) · [All vaults](https://kvm-labs.github.io/vaults/) · [Project website](https://kvm-labs.github.io/)
 
 **Kaleidoscope Glyph** by KVM Labs is a free, private tool that saves your AI chat memory as an encrypted picture (a "Memory Glyph") on your own device, so you can resume the conversation later with any AI. Nothing is uploaded. Keywords: AI memory, AI context, save chat state, encrypted image, offline, local-first, privacy.
 
