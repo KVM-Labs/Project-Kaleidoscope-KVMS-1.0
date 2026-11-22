@@ -9,6 +9,8 @@ Two versions, fully compatible with each other:
 | `glyph.html` | Double-click to open in a browser. Works offline. Simple Mode for first-time users, with an Advanced drawer for keys, token budget and prompt preview. |
 | `glyph.py` | `pip install cryptography pillow`, then `python glyph.py demo` (demo passkey: `demo-password`), `python glyph.py save notes.json`, `python glyph.py load file.png`. |
 
+Older copies of the page are kept in [`versions/`](versions/README.md) so you can see how it looked in the past.
+
 After editing any script in `glyph.html`, run `python update_csp.py glyph.html` to refresh its security hashes.
 
 ## Private AI chat (beta, `glyph.html` only)

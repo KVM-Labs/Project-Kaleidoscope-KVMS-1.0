@@ -1,0 +1,2131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+dfMZ9i8K+gwsG3kAoL81ZL2sGKztC3NiQNdIIKRZFU=' 'sha256-joWTuFoXJJ8mih4Z4w/Ra0bYh/mQ4tE65FOGZcX3m9M=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<title>Kaleidoscope Glyph</title>
+<!--
+  Kaleidoscope Glyph, browser version (file format KGLYPH2)
+  One file. Works offline. Nothing is uploaded anywhere.
+
+  It makes and opens the SAME glyph files as glyph.py:
+    - passkey -> key:    scrypt, settings stored in the file (default N=32768, r=8, p=3), 32-byte key
+    - lock:              AES-256-GCM, 12-byte nonce; the whole header is the extra authenticated data
+    - packing:           zlib-compressed JSON (the title is inside, so it only shows after unlocking)
+    - file layout:       "KGLYPH2" + N(4) + r(1) + p(1) + salt(16) + nonce(12) + locked data
+    - old files:         "KGLYPH1" glyphs (N=32768, r=8, p=1) still open
+    - safety limits:     N must be a power of two from 16384 to 131072, r up to 8, p up to 8;
+                         anything else is refused before any slow work starts
+    - padding:           the packed data is padded to 16 KB / 64 KB / 256 KB / 499,000 bytes before locking,
+                         so the file size does not reveal how much text was written
+    - hiding place:      a PNG text chunk named "kaleidoscope" (base64)
+  The page's Content-Security-Policy (meta tag above) allows its own two scripts (by hash). The only
+  network connections it permits are for the optional on-device AI chat (Step 3B), and only after you press
+  a button: the AI software from cdn.jsdelivr.net/npm/ (one pinned version) and the AI model files from
+  Hugging Face and GitHub. Your notes, messages and passkey are never sent. Without that chat the page
+  makes no network requests. If you edit the scripts, run update_csp.py to refresh the hashes.
+  The picture is drawn from a fingerprint of the locked data. Pictures made here
+  look different from pictures made by glyph.py, but the hidden data is
+  interchangeable: each tool can open the other's glyphs.
+-->
+<style>
+  :root{
+    --bg:#0d0b1a; --panel:#161330; --panel2:#1d1a3d; --line:#2f2b63;
+    --text:#ece9ff; --muted:#a29dd0; --accent:#46e3c8; --accent2:#b06cff;
+    --bad:#ff7b98; --good:#46e3c8;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; color:var(--text);
+    font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1100px 650px at 85% -10%,#2b1f5e 0,transparent 60%),
+               radial-gradient(900px 500px at -10% 10%,#103a4a 0,transparent 55%),var(--bg);
+    min-height:100vh;
+  }
+  main{max-width:1120px;margin:0 auto;padding:28px 18px 60px}
+  h1{margin:0;font-size:30px;letter-spacing:.3px}
+  h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  h2{margin:0 0 6px;font-size:18px}
+  h3{margin:0 0 8px;font-size:15px;color:var(--accent)}
+  .sub{margin:6px 0 18px;color:var(--muted)}
+  .hint{margin:0 0 14px;color:var(--muted);font-size:14px}
+  .card{background:linear-gradient(180deg,var(--panel),#120f29);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px}
+  .cols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+  .cols .card{margin-bottom:0}
+  .cols{margin-bottom:18px}
+  .glyph-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 230px;gap:22px;align-items:start}
+  @media(max-width:900px){.cols,.glyph-cols{grid-template-columns:minmax(0,1fr)}}
+  .card,.node,.cols>*,.glyph-cols>*{min-width:0}
+  .banner{background:#3a1630;border:1px solid var(--bad);color:#ffd3de;border-radius:10px;padding:10px 12px;margin-bottom:14px}
+
+  button,input,select,textarea{font:inherit;color:inherit}
+  input[type=text],input[type=password],input[type=number],select,textarea{
+    background:#0f0c24;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;
+  }
+  input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent2);outline-offset:1px}
+  textarea{resize:vertical;line-height:1.4}
+  button.primary{background:linear-gradient(90deg,var(--accent),#6aa8ff);color:#06231f;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
+  button.primary:disabled{opacity:.5;cursor:wait}
+  button.ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--text)}
+  button.ghost:hover{border-color:var(--accent)}
+
+  /* ---------- keyboard bar ---------- */
+  .keys{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px}
+  .key{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:12px;border:2px solid transparent;transition:opacity .15s,box-shadow .15s,border-color .15s}
+  .key.natural{background:#f3efe6;color:#1f1a38}
+  .key.sharp{background:#2a2556;color:var(--text);border-color:#3a3480}
+  .key.off{opacity:.45}
+  .key.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 16px rgba(70,227,200,.35)}
+  .key-btn{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 8px;border-radius:8px;font-weight:700;font-size:17px}
+  .key-btn:focus-visible{outline:2px solid var(--accent2)}
+  .key-count{font-size:11px;font-weight:500;opacity:.7}
+  .key .key-label{font-size:12px;padding:4px 5px;text-align:center;border-radius:6px}
+  .key.natural .key-label{background:rgba(255,255,255,.8);color:#1f1a38;border-color:rgba(0,0,0,.25)}
+  @media(max-width:760px){.keys{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .keybar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:14px}
+  .keybar select{width:auto}
+  .keybar label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+  .keybar .num input{width:88px}
+  .keybar input[type=range]{width:150px;accent-color:var(--accent)}
+  .spacer{flex:1}
+
+  /* ---------- notes ---------- */
+  .tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+  .node{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:10px;margin-bottom:10px;transition:opacity .15s,border-color .15s}
+  .node.s-in{border-color:#2a7a70}
+  .node.s-off,.node.s-cut,.node.s-empty{opacity:.55}
+  .node-top{display:flex;flex-wrap:nowrap;align-items:center;gap:8px 10px;margin-bottom:8px}
+  .node-top select{width:auto;flex:0 1 auto;min-width:0}
+  .node-top .pri,.node-top .del{flex:none}
+  .node-foot{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .node-top .pri{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+  .node-top .pri input{width:62px;padding:6px 8px}
+  .tok{color:var(--muted);font-size:13px}
+  .badge{font-size:12px;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted)}
+  .s-in .badge{border-color:#2a7a70;color:var(--good)}
+  .s-cut .badge{border-color:#8a5a2a;color:#ffc48a}
+  .del{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px;line-height:1}
+  .del:hover{border-color:var(--bad);color:var(--bad)}
+  .empty{color:var(--muted);margin:6px 0 10px}
+
+  /* ---------- prompt ---------- */
+  #prompt{min-height:210px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+  .stats{margin:10px 0 6px;font-size:14px}
+  .stats small{display:block;color:var(--muted);margin-top:2px}
+  .meter{height:8px;border-radius:99px;background:#0f0c24;border:1px solid var(--line);overflow:hidden;margin:8px 0 12px}
+  .meter>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s}
+  .meter.over>div{background:var(--bad)}
+
+  /* ---------- glyph panels ---------- */
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .msg{min-height:1.4em;margin:10px 0 0;font-size:14px}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+  .progress{height:6px;border-radius:99px;background:#0f0c24;border:1px solid var(--line);overflow:hidden;margin-top:10px;visibility:hidden}
+  .progress.on{visibility:visible}
+  .progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .drop{display:block;border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;margin-bottom:10px;word-break:break-all}
+  .drop.over,.drop:hover{border-color:var(--accent);color:var(--text)}
+  .preview{border-radius:50%;width:100%;max-width:230px;aspect-ratio:1;object-fit:cover;background:#0f0c24;border:1px solid var(--line);display:block}
+  .gid{margin-top:8px;font-size:14px;color:var(--muted);word-break:break-all}
+  .gid b{color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace}
+  .dl{display:inline-block;margin-top:8px;color:var(--accent)}
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;justify-content:space-between}
+  .topbar .actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--good);border:1px solid #2a7a70;background:rgba(70,227,200,.08);border-radius:999px;padding:4px 12px;line-height:1.3}
+  @media(max-width:560px){h1{font-size:24px}.topbar .actions{width:100%}.pill{font-size:12px}}
+  .strength{display:flex;align-items:center;gap:10px;margin:6px 0 4px;font-size:13px;color:var(--muted)}
+  .strength .bar{flex:1;height:6px;border-radius:99px;background:#0f0c24;border:1px solid var(--line);overflow:hidden}
+  .strength .bar>div{height:100%;width:0;background:var(--bad);transition:width .2s,background .2s}
+  .cap{margin:10px 0 2px;font-size:13px;color:var(--muted)}
+  .cap .meter{margin:4px 0 0}
+  .fname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:var(--text);word-break:break-all;margin:-4px 0 10px}
+  .tip{font-size:13px;color:var(--muted);margin:6px 0 0}
+  .tip b{color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+  .rowbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .opened{margin:8px 0 0;font-size:14px;color:var(--text)}
+  .opened b{color:var(--accent)}
+  footer{color:var(--muted);font-size:13px;margin-top:6px}
+  footer li{margin-bottom:4px}
+  footer .legal{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:12.5px}
+  /* ---------- Simple Mode additions ---------- */
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;justify-content:space-between;margin-bottom:6px}
+  .topbar .actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .topbar .pill{flex:1 1 100%;justify-content:flex-start}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--good);border:1px solid #2a7a70;background:rgba(70,227,200,.08);border-radius:999px;padding:4px 12px;line-height:1.3}
+  .pill.warn{color:#ffc48a;border-color:#8a5a2a;background:rgba(255,196,138,.08)}
+  .pill.cloud{color:#ffc48a;border-color:#8a5a2a;background:rgba(255,196,138,.1)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good);flex:none}
+  .pill.cloud .dot{background:#ffc48a;box-shadow:0 0 8px #ffc48a}
+  @media(max-width:560px){h1{font-size:24px}.topbar .actions{width:100%}.topbar .actions button{flex:1 1 auto}.pill{font-size:12px;border-radius:14px}}
+  .status{margin:8px 0 0;padding:8px 12px;border-radius:10px;border:1px solid var(--line);font-size:14px}
+  .status.ok{color:var(--good);border-color:#2a7a70}
+  .status.err{color:var(--bad);border-color:var(--bad)}
+  .hero{text-align:left;padding:26px 22px;margin-top:18px}
+  .hero h2{font-size:24px;margin-bottom:8px}
+  .hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+  .steps{margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:14px}
+  .steps li{margin-bottom:6px} .steps b{color:var(--text)}
+  #advPanel{margin-top:18px}
+  .project{margin:0 0 8px;color:var(--accent);font-size:14px}
+  .simple-stat{margin:0 0 10px;font-size:15px}
+  .tip{font-size:13px;color:var(--muted);margin:10px 0 0}
+  .tip b{color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+  .pin{background:transparent;border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:4px 10px;cursor:pointer;font-size:13px;flex:none}
+  .pin[aria-pressed=true]{color:#ffc48a;border-color:#8a5a2a;background:rgba(255,196,138,.08)}
+  body:not(.adv) .adv-only{display:none !important}
+  .strength{display:flex;align-items:center;gap:10px;margin:6px 0 4px;font-size:13px;color:var(--muted)}
+  .strength .bar{flex:1;height:6px;border-radius:99px;background:#0f0c24;border:1px solid var(--line);overflow:hidden}
+  .strength .bar>div{height:100%;width:0;background:var(--bad);transition:width .2s,background .2s}
+  .cap{margin:10px 0 2px;font-size:13px;color:var(--muted)}
+  .cap .meter{margin:4px 0 0}
+  .fname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:var(--text);word-break:break-all;margin:-4px 0 10px}
+  .rowbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+  .check{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;font-size:13px;color:var(--muted)}
+  .check input{margin-top:3px;flex:none}
+  .warnnote{margin:10px 0 12px;font-size:13px;color:#ffc48a}
+  dialog{background:linear-gradient(180deg,var(--panel),#120f29);color:var(--text);border:1px solid var(--line);border-radius:16px;padding:0;width:min(580px,calc(100vw - 24px));max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow:auto}
+  dialog::backdrop{background:rgba(5,4,15,.72)}
+  .dlg-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 0}
+  .dlg-head h2{margin:0}
+  .dlg-body{padding:12px 18px 18px}
+  .x{width:34px;height:34px;padding:0;font-size:20px;line-height:1}
+  .dropveil{position:fixed;inset:0;z-index:50;background:rgba(10,8,30,.85);display:flex;align-items:center;justify-content:center;padding:24px}
+  .dropveil>div{border:3px dashed var(--accent);border-radius:20px;padding:40px 30px;font-size:22px;font-weight:700;text-align:center;max-width:90vw}
+  #loadPreview{margin:0 auto 12px;max-width:150px}
+  #preview{margin:0 auto 10px;max-width:260px}
+
+  /* ---------- private AI chat ---------- */
+  .chatlog{min-height:140px;max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px;background:#0f0c24;margin-bottom:10px}
+  .bub{margin:0 0 8px;padding:8px 11px;border-radius:10px;white-space:pre-wrap;word-break:break-word;font-size:14.5px;max-width:92%}
+  .bub.user{background:#241d4d;margin-left:auto}
+  .bub.ai{background:#17133a;border:1px solid var(--line)}
+  .bub.err{border-color:var(--bad);color:#ffd3de}
+  .sugg{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px}
+  .sugg>span{flex:1;min-width:0;word-break:break-word;font-size:14px}
+  #chatIn{min-height:64px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<main>
+  <header class="topbar">
+    <h1>Kaleidoscope <span>Glyph</span></h1>
+    <div class="actions">
+      <span class="pill warn" id="quickBadge" hidden>Quick re-save on</span>
+      <button class="ghost" id="loadBtn" type="button">Load Glyph</button>
+      <button class="primary" id="saveOpenBtn" type="button">Save Glyph</button>
+      <button class="ghost" id="advBtn" type="button" aria-expanded="false" aria-controls="advPanel">&#9881; Advanced</button>
+      <button class="ghost" id="clearSessionBtn" type="button">Clear Session</button>
+    </div>
+    <span class="pill" id="privacyPill"><span class="dot" aria-hidden="true"></span><span id="privacyText"></span></span>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+  <noscript><div class="banner">This page needs JavaScript turned on.</div></noscript>
+  <p class="status" id="status" aria-live="polite" hidden></p>
+
+  <!-- Empty state: the first thing a new visitor sees -->
+  <section class="card hero" id="empty">
+    <h2>Keep your AI's memory in one locked picture</h2>
+    <p class="hint">Write down the rules and facts you keep repeating to an AI. Lock them with a passkey into a single picture, and open that picture anywhere. Everything happens on this page.</p>
+    <div class="hero-actions">
+      <button class="primary" id="sampleBtn" type="button">Try Sample Project Glyph</button>
+      <button class="ghost" id="loadBtn2" type="button">Load Glyph</button>
+      <button class="ghost" id="blankBtn" type="button">Start with a blank note</button>
+    </div>
+    <ol class="steps">
+      <li><b>Add notes.</b> One rule or fact each. Star the important ones.</li>
+      <li><b>Save Glyph.</b> Pick a passkey. You get a picture file.</li>
+      <li><b>Load Glyph.</b> Drop the file anywhere on this page to come back.</li>
+    </ol>
+  </section>
+
+  <!-- Advanced drawer (closed by default) -->
+  <section id="advPanel" hidden>
+    <div class="card" id="keyCard">
+      <h2>Musical key</h2>
+      <p class="hint">Each note is a kind of rule. Click a key to switch it on or off, pick a musical key, or type a name under a key to relabel it.</p>
+      <div class="keys" id="keys"></div>
+      <div class="keybar">
+        <label>Musical key <select id="keyPreset"></select></label>
+        <button class="ghost" id="allBtn" type="button">All notes</button>
+        <button class="ghost" id="noneBtn" type="button">None</button>
+        <span class="spacer"></span>
+        <label><input type="checkbox" id="limitOn"> Limit size</label>
+        <input type="range" id="budgetRange" min="0" max="1000" step="10" value="300" aria-label="Token budget slider">
+        <label class="num"><input type="number" id="budgetNum" min="0" step="10" value="300" aria-label="Token budget"> tokens</label>
+      </div>
+    </div>
+    <div class="card" id="promptCard">
+      <h2>Assembled prompt preview</h2>
+      <p class="hint">This is exactly what Copy prompt gives you.</p>
+      <div class="stats" id="stats" aria-live="polite"></div>
+      <div class="meter" id="meter"><div></div></div>
+      <textarea id="prompt" readonly aria-label="Prompt" spellcheck="false"></textarea>
+    </div>
+  </section>
+
+  <!-- Workspace: notes + ready-to-copy prompt -->
+  <div class="cols" id="workspace" hidden>
+    <section class="card" id="notesCard">
+      <h2>Your notes</h2>
+      <p class="project" id="projectTitle" hidden></p>
+      <p class="hint">One rule or fact per note. Star the ones that matter most.</p>
+      <div id="nodes"></div>
+      <div class="tools"><button class="ghost" id="addBtn" type="button">+ Add note</button></div>
+    </section>
+    <section class="card" id="readyCard">
+      <h2>Ready for your AI</h2>
+      <p class="hint">Auto-Tune sends the most important notes first and keeps the prompt short.</p>
+      <p class="simple-stat" id="simpleStat" aria-live="polite"></p>
+      <div class="tools"><button class="primary" id="copyBtn" type="button">Copy prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
+      <p class="tip">Paste it at the start of a chat with any AI. When you paste into a cloud AI, that company can read it.</p>
+    </section>
+  </div>
+
+  <!-- Private AI chat: an AI that runs inside this browser (WebGPU) -->
+  <section class="card" id="aiCard" aria-labelledby="aiHead" hidden>
+    <h2 id="aiHead">Chat with a private AI <span class="badge">beta</span></h2>
+    <p class="hint">A small AI that runs inside this browser and uses your notes as its instructions. Your notes and messages stay on this device.</p>
+    <p class="msg" id="aiGpuMsg" aria-live="polite"></p>
+    <div id="aiSetup">
+      <div class="field"><label for="aiModel">AI model</label><select id="aiModel"></select></div>
+      <div class="rowbtns">
+        <button class="ghost" id="aiSizeBtn" type="button">Check download size</button>
+        <button class="primary" id="aiStartBtn" type="button" disabled>Download and start</button>
+        <button class="ghost" id="aiCancelBtn" type="button" hidden>Cancel Download</button>
+        <button class="ghost" id="aiDeleteBtn" type="button">Remove downloaded AI</button>
+      </div>
+      <p class="tip" id="aiSizeTip">Check the size first. The download happens once; next time the AI loads from this browser's storage.</p>
+      <div class="progress" id="aiProg"><div></div></div>
+      <p class="msg" id="aiMsg" aria-live="polite"></p>
+    </div>
+    <div id="aiChat" hidden>
+      <div class="chatlog" id="chatLog" role="log" aria-live="polite"></div>
+      <textarea id="chatIn" rows="2" maxlength="4000" placeholder="Type a message. Enter sends, Shift+Enter adds a line." aria-label="Message"></textarea>
+      <div class="rowbtns">
+        <button class="primary" id="chatSend" type="button">Send</button>
+        <button class="ghost" id="chatStop" type="button" hidden>Stop Generating</button>
+        <button class="ghost" id="chatNew" type="button">New chat</button>
+        <button class="ghost" id="chatSuggest" type="button">Suggest notes</button>
+        <button class="ghost" id="aiUnloadBtn" type="button">Unload AI</button>
+      </div>
+      <div id="suggestBox" hidden></div>
+      <p class="msg" id="chatMsg" aria-live="polite"></p>
+    </div>
+    <p class="tip">This small AI is far less capable than the big cloud assistants, and it can be wrong. The AI software and model are fetched from the internet when you start it; your notes and messages are never sent.</p>
+  </section>
+
+  <footer>
+    <ul>
+      <li>Forget the passkey and the glyph cannot be opened. There is no reset.</li>
+      <li>The locked data lives in the PNG file's data, not in its pixels. If a website or app compresses, re-saves or shrinks the image, the data is lost. Send glyphs as file attachments and keep a backup.</li>
+      <li>The title is locked inside the glyph. The picture only shows the format, the save time and a short ID.</li>
+      <li>Locking and unlocking take a few seconds on purpose. That slowness protects your passkey.</li>
+    </ul>
+    <p class="legal">Kaleidoscope Glyph &middot; &copy; KVM Labs &middot; Released under the MIT License. Provided &ldquo;AS IS&rdquo;, without warranty of any kind. Use at your own risk, and keep backups: a lost passkey cannot be recovered.</p>
+  </footer>
+</main>
+
+<div class="dropveil" id="dropOverlay" hidden><div>Drop your glyph PNG to open it</div></div>
+
+<!-- Save Glyph -->
+<dialog id="saveDlg" aria-labelledby="saveHead">
+  <div class="dlg-head"><h2 id="saveHead">Save Glyph</h2><button class="ghost x" id="saveX" type="button" aria-label="Close">&times;</button></div>
+  <div class="dlg-body">
+    <div id="saveForm">
+      <div class="field"><label for="saveTitle">Title (locked inside the glyph, shown only after unlocking)</label><input type="text" id="saveTitle" maxlength="80" placeholder="e.g. Kaleidoscope project rules" autocomplete="off"></div>
+      <div class="fname" id="fnamePreview" aria-label="File name preview"></div>
+      <div id="passFields">
+        <div class="field"><label for="savePw">Passkey</label><input type="password" id="savePw" autocomplete="new-password"></div>
+        <div class="field"><label for="savePw2">Type it again</label><input type="password" id="savePw2" autocomplete="new-password"></div>
+        <div class="strength" aria-live="polite"><span id="strengthText">Passkey strength</span><span class="bar"><div id="strengthBar"></div></span></div>
+        <div class="rowbtns"><button class="ghost" id="suggestBtn" type="button">Suggest 4 words</button></div>
+        <p class="tip" id="suggestTip" hidden></p>
+        <label class="check"><input type="checkbox" id="keepPass"> Keep this passkey for quick re-save until I press Clear Session (or 15 minutes of inactivity)</label>
+      </div>
+      <div class="cap"><span id="capText"></span><div class="meter" id="capMeter"><div></div></div></div>
+      <p class="warnnote">A forgotten passkey cannot be recovered. Share the PNG as a file or attachment: apps that compress images erase the locked data.</p>
+      <div class="rowbtns">
+        <button class="primary" id="quickBtn" type="button" hidden>Quick Re-Save</button>
+        <button class="primary" id="saveBtn" type="button">Lock and save glyph</button>
+        <button class="ghost" id="saveCancel" type="button" hidden>Cancel</button>
+      </div>
+      <div class="progress" id="saveProg"><div></div></div>
+      <p class="msg" id="saveMsg" aria-live="polite"></p>
+    </div>
+    <div id="saveResult" hidden>
+      <img class="preview" id="preview" alt="Your new glyph" hidden>
+      <div class="gid" id="gid"></div>
+      <a class="dl" id="dlLink" hidden>Download again</a>
+      <p class="hint" style="margin-top:12px">Some apps (WhatsApp, iMessage, screenshots) strip the hidden data from pictures. As a backup, copy the locked text and keep it somewhere safe. It is just as private as the picture: it cannot be opened without your passkey.</p>
+      <div class="rowbtns"><button class="ghost" id="copyLockedBtn" type="button">Copy locked text</button><span id="copyLockedMsg" class="msg ok" style="margin:0"></span></div>
+      <div class="rowbtns" style="margin-top:12px"><button class="primary" id="saveDone" type="button">Done</button></div>
+    </div>
+  </div>
+</dialog>
+
+<!-- Load Glyph -->
+<dialog id="loadDlg" aria-labelledby="loadHead">
+  <div class="dlg-head"><h2 id="loadHead">Load Glyph</h2><button class="ghost x" id="loadX" type="button" aria-label="Close">&times;</button></div>
+  <div class="dlg-body">
+    <label class="drop" id="drop" for="fileIn"><span id="dropText">Drop a glyph PNG here, or click to choose</span></label>
+    <input type="file" id="fileIn" accept="image/png,.png" hidden>
+    <img class="preview" id="loadPreview" alt="Chosen glyph" hidden>
+    <details id="pasteBox" style="margin:10px 0"><summary>Picture lost its hidden data? Paste locked text instead</summary>
+      <textarea id="pasteIn" rows="3" spellcheck="false" placeholder="Paste the locked text that starts with KVMS1:" aria-label="Locked text" style="margin-top:8px"></textarea>
+    </details>
+    <div class="field"><label for="openPw">Passkey</label><input type="password" id="openPw" autocomplete="current-password"></div>
+    <label class="check"><input type="checkbox" id="keepPass2"> Keep unlocked for quick re-save until I press Clear Session (or 15 minutes of inactivity)</label>
+    <div class="rowbtns">
+      <button class="primary" id="openBtn" type="button">Unlock glyph</button>
+      <button class="ghost" id="openCancel" type="button" hidden>Cancel</button>
+    </div>
+    <div class="progress" id="openProg"><div></div></div>
+    <p class="msg" id="openMsg" aria-live="polite"></p>
+  </div>
+</dialog>
+
+<script id="core">
+"use strict";
+/* ======================================================================
+   CORE: notes, locking, PNG hiding. No page code in here.
+   ====================================================================== */
+
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const FLATS = {DB: "C#", EB: "D#", GB: "F#", AB: "G#", BB: "A#"};
+const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
+const MINOR_STEPS = [0, 2, 3, 5, 7, 8, 10];
+
+const MAGIC_V1 = new TextEncoder().encode("KGLYPH1");   // old files: fixed N=32768, r=8, p=1
+const MAGIC = new TextEncoder().encode("KGLYPH2");      // new files: settings live in the header
+const SALT_LEN = 16, NONCE_LEN = 12;
+const PNG_FIELD = "kaleidoscope";
+const MAX_PAYLOAD = 500000;
+const LABEL_PREFIX = "KVMS-1.0";
+const DEFAULT_PARAMS = {N: 32768, r: 8, p: 3};
+const V1_PARAMS = {N: 32768, r: 8, p: 1};
+const MIN_N = 16384, MAX_N = 131072, MAX_R = 8, MAX_P = 8;   // safety limits, same as glyph.py
+const HEADER_V2_LEN = MAGIC.length + 4 + 1 + 1 + SALT_LEN + NONCE_LEN;   // 41 bytes
+const NO_DATA_MSG = "No hidden glyph data found. This image was probably compressed, resized or re-saved by an app or website. Use the original glyph file, or paste the locked text if you copied it when you saved.";
+const WRONG_KEY_MSG = "Wrong passkey, or the glyph file was modified.";
+const NOT_GLYPH_MSG = "This does not look like a Kaleidoscope glyph.";
+const UNSAFE_MSG = "This glyph asks for lock settings outside the safe limits, so it was not opened.";
+const CANCELLED_MSG = "Cancelled.";
+
+/* ---------- small helpers ---------- */
+
+function concatBytes(...parts) {
+  let total = 0;
+  for (const p of parts) total += p.length;
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.length; }
+  return out;
+}
+function bytesToHex(bytes) {
+  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+}
+function latin1Decode(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return s;
+}
+function latin1Encode(str) {
+  const out = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xff;
+  return out;
+}
+function b64encode(bytes) { return btoa(latin1Decode(bytes)); }
+function b64decode(text) { return latin1Encode(atob(text)); }
+
+async function sha256(bytes) {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+}
+
+/* ---------- notes ---------- */
+
+function normalizeNote(name) {
+  let n = String(name).trim().toUpperCase();
+  if (FLATS[n]) n = FLATS[n];
+  if (!NOTES.includes(n)) throw new Error("'" + name + "' is not a note. Use one of: " + NOTES.join(", "));
+  return n;
+}
+
+function parseKey(text) {
+  const t = String(text).trim();
+  const low = t.toLowerCase();
+  if (low === "all") return new Set(NOTES);
+  for (const [suffix, steps] of [["-major", MAJOR_STEPS], ["-minor", MINOR_STEPS]]) {
+    if (low.endsWith(suffix)) {
+      const root = NOTES.indexOf(normalizeNote(t.slice(0, -suffix.length)));
+      return new Set(steps.map(s => NOTES[(root + s) % 12]));
+    }
+  }
+  return new Set(t.split(",").filter(p => p.trim()).map(normalizeNote));
+}
+
+// Same size guess as glyph.py: about 4 letters per token (counting real characters).
+function estimateTokens(text) {
+  return Math.max(1, Math.floor(Array.from(text).length / 4));
+}
+
+function cleanNode(n, i) {
+  const text = String(n.text == null ? "" : n.text).trim();
+  if (!text) throw new Error("Note number " + (i + 1) + " has no text.");
+  let pr = parseInt(n.priority, 10);
+  if (!Number.isFinite(pr)) pr = 5;
+  return {
+    note: normalizeNote(n.note == null ? "C" : n.note),
+    text: text,
+    priority: Math.max(1, Math.min(10, pr)),
+    tokens: estimateTokens(text),
+  };
+}
+
+function cleanLabels(labels) {
+  const out = {};
+  for (const [k, v] of Object.entries(labels || {})) {
+    const s = String(v).trim();
+    if (s) out[normalizeNote(k)] = s;
+  }
+  return out;
+}
+
+function cleanTitle(title) {
+  const t = String(title == null ? "" : title).split(/\s+/).filter(Boolean).join(" ");
+  const cut = Array.from(t).slice(0, 80).join("");
+  return cut || "Untitled";
+}
+
+function buildSession(nodes, labels, title) {
+  return {
+    version: 2,
+    title: cleanTitle(title),
+    saved_at: Math.floor(Date.now() / 1000),
+    labels: cleanLabels(labels),
+    nodes: nodes.map(cleanNode),
+  };
+}
+
+/* Same rules as glyph.py make_prompt:
+   1) keep notes that are on in the key, 2) highest priority first,
+   3) add notes until the next one would not fit, then stop. */
+function makePrompt(session, active, budget) {
+  const labels = session.labels || {};
+  const nodes = session.nodes;
+  const inKey = [];
+  nodes.forEach((n, i) => { if (!active || active.has(n.note)) inKey.push(i); });
+  inKey.sort((a, b) => nodes[b].priority - nodes[a].priority);   // ties keep saved order
+
+  const status = nodes.map(() => "off");
+  const chosen = [];
+  let used = 0, stopped = false;
+  for (const i of inKey) {
+    const n = nodes[i];
+    if (!stopped && budget != null && used + n.tokens > budget) stopped = true;
+    if (stopped) { status[i] = "cut"; continue; }
+    chosen.push(i);
+    status[i] = "in";
+    used += n.tokens;
+  }
+
+  const lines = ["Project rules and context (most important first):"];
+  for (const i of chosen) {
+    const n = nodes[i];
+    const label = Object.prototype.hasOwnProperty.call(labels, n.note) ? labels[n.note] : n.note;
+    lines.push("- [" + label + "] " + n.text);
+  }
+  return {
+    prompt: lines.join("\n"),
+    status: status,
+    stats: {
+      loaded: chosen.length,
+      tokens_used: used,
+      skipped_by_key: nodes.length - inKey.length,
+      cut_by_budget: inKey.length - chosen.length,
+    },
+  };
+}
+
+/* ---------- compression (zlib, the same format Python's zlib uses) ---------- */
+
+async function pipeThrough(bytes, stream) {
+  const writer = stream.writable.getWriter();
+  writer.write(bytes).catch(() => {});
+  writer.close().catch(() => {});
+  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+}
+const zlibCompress = bytes => pipeThrough(bytes, new CompressionStream("deflate"));
+const zlibDecompress = bytes => pipeThrough(bytes, new DecompressionStream("deflate"));
+
+/* ---------- scrypt (the browser has no built-in one, so it is built here) ----------
+   Follows RFC 7914. Uses the browser's PBKDF2 for the two outer steps and
+   Salsa20/8 for the memory-hard middle. */
+
+const yieldToPage = (() => {
+  if (typeof MessageChannel !== "undefined") {
+    return () => new Promise(resolve => {
+      const mc = new MessageChannel();
+      mc.port1.onmessage = () => { mc.port1.close(); resolve(); };
+      mc.port2.postMessage(0);
+    });
+  }
+  return () => new Promise(resolve => setTimeout(resolve, 0));
+})();
+
+function salsa8(B) {
+  let x0 = B[0], x1 = B[1], x2 = B[2], x3 = B[3], x4 = B[4], x5 = B[5], x6 = B[6], x7 = B[7],
+      x8 = B[8], x9 = B[9], x10 = B[10], x11 = B[11], x12 = B[12], x13 = B[13], x14 = B[14], x15 = B[15], u;
+  for (let i = 0; i < 8; i += 2) {
+    u = x0 + x12 | 0;  x4 ^= u << 7 | u >>> 25;
+    u = x4 + x0 | 0;   x8 ^= u << 9 | u >>> 23;
+    u = x8 + x4 | 0;   x12 ^= u << 13 | u >>> 19;
+    u = x12 + x8 | 0;  x0 ^= u << 18 | u >>> 14;
+    u = x5 + x1 | 0;   x9 ^= u << 7 | u >>> 25;
+    u = x9 + x5 | 0;   x13 ^= u << 9 | u >>> 23;
+    u = x13 + x9 | 0;  x1 ^= u << 13 | u >>> 19;
+    u = x1 + x13 | 0;  x5 ^= u << 18 | u >>> 14;
+    u = x10 + x6 | 0;  x14 ^= u << 7 | u >>> 25;
+    u = x14 + x10 | 0; x2 ^= u << 9 | u >>> 23;
+    u = x2 + x14 | 0;  x6 ^= u << 13 | u >>> 19;
+    u = x6 + x2 | 0;   x10 ^= u << 18 | u >>> 14;
+    u = x15 + x11 | 0; x3 ^= u << 7 | u >>> 25;
+    u = x3 + x15 | 0;  x7 ^= u << 9 | u >>> 23;
+    u = x7 + x3 | 0;   x11 ^= u << 13 | u >>> 19;
+    u = x11 + x7 | 0;  x15 ^= u << 18 | u >>> 14;
+
+    u = x0 + x3 | 0;   x1 ^= u << 7 | u >>> 25;
+    u = x1 + x0 | 0;   x2 ^= u << 9 | u >>> 23;
+    u = x2 + x1 | 0;   x3 ^= u << 13 | u >>> 19;
+    u = x3 + x2 | 0;   x0 ^= u << 18 | u >>> 14;
+    u = x5 + x4 | 0;   x6 ^= u << 7 | u >>> 25;
+    u = x6 + x5 | 0;   x7 ^= u << 9 | u >>> 23;
+    u = x7 + x6 | 0;   x4 ^= u << 13 | u >>> 19;
+    u = x4 + x7 | 0;   x5 ^= u << 18 | u >>> 14;
+    u = x10 + x9 | 0;  x11 ^= u << 7 | u >>> 25;
+    u = x11 + x10 | 0; x8 ^= u << 9 | u >>> 23;
+    u = x8 + x11 | 0;  x9 ^= u << 13 | u >>> 19;
+    u = x9 + x8 | 0;   x10 ^= u << 18 | u >>> 14;
+    u = x15 + x14 | 0; x12 ^= u << 7 | u >>> 25;
+    u = x12 + x15 | 0; x13 ^= u << 9 | u >>> 23;
+    u = x13 + x12 | 0; x14 ^= u << 13 | u >>> 19;
+    u = x14 + x13 | 0; x15 ^= u << 18 | u >>> 14;
+  }
+  B[0] += x0;  B[1] += x1;  B[2] += x2;   B[3] += x3;
+  B[4] += x4;  B[5] += x5;  B[6] += x6;   B[7] += x7;
+  B[8] += x8;  B[9] += x9;  B[10] += x10; B[11] += x11;
+  B[12] += x12; B[13] += x13; B[14] += x14; B[15] += x15;
+}
+
+// B (in) -> Y (out), both 32*r words long. T is a 16-word scratch space.
+function blockMix(B, Y, r, T) {
+  const last = (2 * r - 1) * 16;
+  for (let k = 0; k < 16; k++) T[k] = B[last + k];
+  for (let i = 0; i < 2 * r; i++) {
+    const from = i * 16;
+    for (let k = 0; k < 16; k++) T[k] ^= B[from + k];
+    salsa8(T);
+    const to = ((i & 1) ? r + (i >> 1) : (i >> 1)) * 16;
+    for (let k = 0; k < 16; k++) Y[to + k] = T[k];
+  }
+}
+
+/* Padding: the packed data is padded up to a fixed size bucket before locking, so the
+   file size does not reveal how much text was written. Same buckets as glyph.py. */
+const BUCKETS = [16384, 65536, 262144, 499000];
+function padPacked(packed) {
+  const need = 4 + packed.length;
+  const size = BUCKETS.find(b => need <= b);
+  if (!size) throw new Error("Too much text for one glyph (limit " + MAX_PAYLOAD.toLocaleString() + " bytes). Trim some notes and try again.");
+  const out = new Uint8Array(size);               // zeros after the data
+  new DataView(out.buffer).setUint32(0, packed.length);
+  out.set(packed, 4);
+  return out;
+}
+function unpadPacked(plain) {                     // early KGLYPH2 files had no padding (zlib starts 0x78)
+  if (plain[0] === 0x78) return plain;
+  if (plain.length < 4) throw new Error(NOT_GLYPH_MSG);
+  const n = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0);
+  if (n > plain.length - 4) throw new Error(NOT_GLYPH_MSG);
+  return plain.subarray(4, 4 + n);
+}
+/* Best-effort memory hygiene: overwrite a buffer with zeros once it is no longer needed.
+   (JavaScript cannot promise that no other copy exists, e.g. the typed passkey text.) */
+function wipe(...buffers) { for (const b of buffers) if (b && b.fill) b.fill(0); }
+
+function checkParams(P) {
+  const ok = Number.isInteger(P.N) && P.N >= MIN_N && P.N <= MAX_N && (P.N & (P.N - 1)) === 0 &&
+             Number.isInteger(P.r) && P.r >= 1 && P.r <= MAX_R &&
+             Number.isInteger(P.p) && P.p >= 1 && P.p <= MAX_P;
+  if (!ok) throw new Error(UNSAFE_MSG);
+}
+
+// params = {N, r, p}; cancel = {cancelled: false} (set cancelled to true to stop)
+async function scryptKey(passwordBytes, salt, params, onProgress, cancel) {
+  const P = params || DEFAULT_PARAMS;
+  checkParams(P);                              // limits first, slow work second
+  const N = P.N, r = P.r, p = P.p;
+  const words = 32 * r;
+  const pbkdf2 = async (saltBytes, bits) => {
+    const base = await crypto.subtle.importKey("raw", passwordBytes, "PBKDF2", false, ["deriveBits"]);
+    return new Uint8Array(await crypto.subtle.deriveBits(
+      {name: "PBKDF2", hash: "SHA-256", salt: saltBytes, iterations: 1}, base, bits));
+  };
+
+  let B = null, V = null, T = null, X = null, Y = null;
+  try {
+  B = await pbkdf2(salt, p * 128 * r * 8);
+  const BView = new DataView(B.buffer, B.byteOffset, B.byteLength);
+  V = new Uint32Array(N * words);              // the big memory table (32 MB at the default settings)
+  T = new Uint32Array(16);
+  const total = 2 * N * p;
+  let done = 0;
+
+  for (let block = 0; block < p; block++) {
+    X = new Uint32Array(words); Y = new Uint32Array(words);
+    let swap;
+    const off = block * 128 * r;
+    for (let i = 0; i < words; i++) X[i] = BView.getUint32(off + i * 4, true);
+    for (let i = 0; i < N; i++) {
+      V.set(X, i * words);
+      blockMix(X, Y, r, T);
+      swap = X; X = Y; Y = swap;
+      if ((++done & 1023) === 0) {
+        if (cancel && cancel.cancelled) throw new Error(CANCELLED_MSG);
+        if (onProgress) onProgress(done / total);
+        await yieldToPage();
+      }
+    }
+    for (let i = 0; i < N; i++) {
+      const at = (X[(2 * r - 1) * 16] & (N - 1)) * words;
+      for (let k = 0; k < words; k++) X[k] ^= V[at + k];
+      blockMix(X, Y, r, T);
+      swap = X; X = Y; Y = swap;
+      if ((++done & 1023) === 0) {
+        if (cancel && cancel.cancelled) throw new Error(CANCELLED_MSG);
+        if (onProgress) onProgress(done / total);
+        await yieldToPage();
+      }
+    }
+    for (let i = 0; i < words; i++) BView.setUint32(off + i * 4, X[i], true);
+  }
+  return await pbkdf2(B, 256);                 // the 32-byte lock key
+  } finally {
+    wipe(B, V, T, X, Y);
+  }
+}
+
+/* ---------- locking and unlocking (AES-256-GCM) ---------- */
+
+async function lockKey(password, salt, params, usage, onProgress, cancel) {
+  const pwBytes = new TextEncoder().encode(password);
+  let raw = null;
+  try {
+    raw = await scryptKey(pwBytes, salt, params, onProgress, cancel);
+    // extractable: false, so the page cannot read the key back out of Web Crypto
+    return await crypto.subtle.importKey("raw", raw, "AES-GCM", false, [usage]);
+  } finally {
+    wipe(pwBytes, raw);
+  }
+}
+
+/* KGLYPH2 layout:
+   "KGLYPH2" | N (4 bytes, big-endian) | r (1) | p (1) | salt (16) | nonce (12) | locked data
+   The whole header is signed into the lock, so changing any setting makes opening fail. */
+async function encryptSession(session, password, onProgress, cancel, params) {
+  const P = params || DEFAULT_PARAMS;
+  checkParams(P);
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+  const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LEN));
+  const head = new Uint8Array(6);
+  new DataView(head.buffer).setUint32(0, P.N);
+  head[4] = P.r; head[5] = P.p;
+  const header = concatBytes(MAGIC, head, salt, nonce);
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(session));
+  const packed = await zlibCompress(jsonBytes);
+  const plain = padPacked(packed);
+  wipe(jsonBytes, packed);
+  try {
+    const key = await lockKey(password, salt, P, "encrypt", onProgress, cancel);
+    const locked = new Uint8Array(await crypto.subtle.encrypt(
+      {name: "AES-GCM", iv: nonce, additionalData: header, tagLength: 128}, key, plain));
+    return concatBytes(header, locked);
+  } finally {
+    wipe(plain);
+  }
+}
+
+const startsWith = (bytes, magic) => bytes.length >= magic.length && magic.every((b, i) => bytes[i] === b);
+
+async function decryptSession(payload, password, onProgress, cancel) {
+  let P, salt, nonce, locked, aad;
+  if (startsWith(payload, MAGIC)) {
+    if (payload.length < HEADER_V2_LEN + 16) throw new Error(NOT_GLYPH_MSG);
+    const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+    P = {N: view.getUint32(MAGIC.length), r: payload[MAGIC.length + 4], p: payload[MAGIC.length + 5]};
+    checkParams(P);
+    const at = MAGIC.length + 6;
+    salt = payload.subarray(at, at + SALT_LEN);
+    nonce = payload.subarray(at + SALT_LEN, HEADER_V2_LEN);
+    locked = payload.subarray(HEADER_V2_LEN);
+    aad = payload.subarray(0, HEADER_V2_LEN);
+  } else if (startsWith(payload, MAGIC_V1)) {
+    const m = MAGIC_V1.length;
+    if (payload.length < m + SALT_LEN + NONCE_LEN + 16) throw new Error(NOT_GLYPH_MSG);
+    P = V1_PARAMS;
+    salt = payload.subarray(m, m + SALT_LEN);
+    nonce = payload.subarray(m + SALT_LEN, m + SALT_LEN + NONCE_LEN);
+    locked = payload.subarray(m + SALT_LEN + NONCE_LEN);
+    aad = MAGIC_V1;
+  } else {
+    throw new Error(NOT_GLYPH_MSG);
+  }
+  const key = await lockKey(password, salt, P, "decrypt", onProgress, cancel);
+  let plain;
+  try {
+    plain = new Uint8Array(await crypto.subtle.decrypt(
+      {name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128}, key, locked));
+  } catch (e) {
+    throw new Error(WRONG_KEY_MSG);
+  }
+  try {
+    const json = await zlibDecompress(unpadPacked(plain));
+    try { return JSON.parse(new TextDecoder().decode(json)); } finally { wipe(json); }
+  } finally {
+    wipe(plain);
+  }
+}
+
+/* Rough size of the finished payload, for the capacity meter (no slow lock needed). */
+async function estimatePayloadSize(session) {
+  const packed = await zlibCompress(new TextEncoder().encode(JSON.stringify(session)));
+  const need = 4 + packed.length;
+  const size = BUCKETS.find(b => need <= b) || need;   // over the top bucket: show the real (too big) size
+  return HEADER_V2_LEN + size + 16;
+}
+
+/* ---------- visible label and file name ---------- */
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+function stampParts(session) {
+  const d = new Date((session.saved_at || Math.floor(Date.now() / 1000)) * 1000);
+  return {date: d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()),
+          hh: pad2(d.getHours()), mm: pad2(d.getMinutes())};
+}
+function glyphLabel(session, id) {          // KVMS-1.0 · YYYY-MM-DD HH:MM · ID: XXXXXXXX
+  const t = stampParts(session);
+  return LABEL_PREFIX + " \u00b7 " + t.date + " " + t.hh + ":" + t.mm + " \u00b7 ID: " + id;
+}
+function glyphFilename(session, id) {       // KVMS_YYYY-MM-DD_HHMM_XXXXXXXX.png
+  const t = stampParts(session);
+  return "KVMS_" + t.date + "_" + t.hh + t.mm + "_" + id + ".png";
+}
+
+/* ---------- passkey help (all local, nothing leaves the page) ---------- */
+
+const WORDS = "able acid acorn actor adapt admit adult agent agree ahead alarm album alert alive allow alloy alpha amber ample angle ankle apple april apron arch arena argue armor arrow aspen atlas atom attic audio autumn avoid awake award axis bacon badge bagel baker balance bamboo banjo barn basil basket beach beacon beam bean beaver bench berry bike bison blade blanket blast blend bless blink bloom blue blush boat bobcat bold bolt bonus book boost border bottle bounce bowl brain brake branch brave bread breeze brick bridge bright brook broom brush bubble bucket buddy buffalo bugle bundle burst butter button cabin cable cactus cake calm camel camera camp canal candle candy canoe canvas canyon cape captain carbon cargo carpet carrot carry cart castle cat cave cedar celery cello cement chain chair chalk champ chart cheese cherry chess chief child chill chime chip choir chop cider cinema circle citrus city clam clap clay clean clerk click cliff climb clock cloud clover clown club coach coast cobra cocoa coconut coffee coil coin comet compass cone coral corn cosmos cotton couch cove cow coyote crab craft crane crater cream creek crest crew cricket crisp crowd crown crumb crystal cube cup curl curve cycle daisy dance dandy dart dawn deal deck deer delta denim desert desk detail dial diamond diary diesel dinner dingo dish diver dock doctor dog dolphin dome donkey door dove dozen dragon drama dream dress drift drill drink drum duck dune dusk eagle earth easel echo edge eight elbow elder elf elm ember emerald empire engine envoy epoch equal erase essay evening exact exit extra fabric face fairy falcon family fan farm fast feast feather fence fern ferry fever fiber field fig film finch fire first fish flag flame flash fleet flint float flock flood floor flour flower flute fly foam focus fog foil folk forest forge fork fort fossil fox frame fresh friend frog frost fruit fudge funny gadget galaxy game garden garlic gas gate gear gem ghost giant ginger giraffe glacier glad glass glide globe glove glow glue goat gold golf goose gown grace grain grape graph grass gravel green grid grill grove guard guest guide guitar gull gym habit hair half hall hammer hamster hand harbor hare harp harvest hat hawk hazel heart heat hedge helmet herb heron hill hint hippo hive hobby holly home honey hood hook hope horn horse hotel house hover humble hunt hut ice icon igloo image inch index ink inn insect iron island ivory ivy jacket jade jaguar jam jar jazz jelly jet jewel jigsaw joke journey joy judge juice jungle junior kayak keel kettle key kick kind king kiosk kite kitten kiwi knee knife knit knob koala label ladder lagoon lake lamp lance land lantern lark laser latch laugh lava lawn layer leaf leap lemon lens leopard letter level lever light lily lime linen lion list llama lobby lobster lock lodge logic lotus lucky lunar lunch lynx magic magnet mango maple marble march market mask match meadow medal melon memo mesa metal meteor mild mill mimic mint mirror mist mitten moat model mole monkey moon moose moss moth motor mount mouse movie mud mule muse music myth nacho nail name napkin navy nectar nest net night noble noodle north nose notch note novel nugget nut oak oasis oat ocean olive onion opal opera orange orbit orchid otter oval oven owl oxygen oyster paddle page paint palace palm panda panel paper parade parrot party pasta patch path pause peach peak pear pearl pebble pedal pelican pencil penguin pepper piano pickle picnic piece pigeon pilot pine pink pipe pixel pizza planet plant plaza plum pocket poem polar pond pony pool poppy porch potato pouch powder prairie prism puddle puffin pulse puma pumpkin puppy puzzle quail quartz queen quest quick quill quilt quiet quote rabbit raccoon radar radio raft rain raisin ranch raven razor reach record reef relay ribbon rice ridge ring river roast robin robot rocket rodeo roof rook room root rope rose round ruby rugby rule saddle safari sage sail salad salmon salt sand sandal satin sauce scale scarf school scout screen seal season seed shadow shark sheep shelf shell shield shine ship shore signal silk silver sketch skate skill sky slate sled sleep slice slope smile smoke snail snake snow soap sock solar song sound soup south space spark spice spider spike spoon sport spring spruce square squid stable stamp star station steam steel stem step stone storm story stove straw stream street studio sugar summer sun surf swan swift swing sword table talon tango tape taxi teacup temple tennis tent thistle thorn thread thumb thunder ticket tide tiger tile timber tin toast tomato tonic tool torch tower toy track trade trail train tree tribe trout truck trumpet tulip tunnel turkey turtle twig twin umbrella union urban valley vapor vase velvet venture vest video village vine violin visit vivid voice volcano vowel voyage wagon walnut walrus wand warm water wave wax weasel web wedge west whale wheat wheel whisk whistle willow wind window wing winter wire wish wizard wolf wonder wood wool world worm wrap yacht yard yarn yellow yoga yogurt zebra zero zigzag zinc zone zoom".split(" ");
+
+function randomBelow(n) {                   // fair random number, 0 .. n-1
+  const limit = Math.floor(4294967296 / n) * n;
+  const box = new Uint32Array(1);
+  do { crypto.getRandomValues(box); } while (box[0] >= limit);
+  return box[0] % n;
+}
+function suggestPassphrase(count) {
+  const out = [];
+  for (let i = 0; i < (count || 4); i++) out.push(WORDS[randomBelow(WORDS.length)]);
+  return out.join("-");
+}
+// A rough guide only. Returns {bits, label, fraction}.
+function passkeyStrength(pw) {
+  if (!pw) return {bits: 0, label: "Passkey strength", fraction: 0};
+  let bits;
+  const parts = pw.split("-");
+  if (parts.length >= 3 && parts.every(w => WORDS.includes(w))) {
+    bits = parts.length * Math.log2(WORDS.length);          // random words from our list
+  } else {
+    let pool = 0;
+    if (/[a-z]/.test(pw)) pool += 26;
+    if (/[A-Z]/.test(pw)) pool += 26;
+    if (/[0-9]/.test(pw)) pool += 10;
+    if (/[^A-Za-z0-9\u0080-\uffff]/.test(pw)) pool += 32;
+    if (/[\u0080-\uffff]/.test(pw)) pool += 100;
+    const unique = new Set(pw).size;
+    bits = 0.75 * Math.min(Array.from(pw).length, unique * 2) * Math.log2(Math.max(pool, 2));
+  }
+  const label = bits < 28 ? "Weak" : bits < 36 ? "Fair" : bits < 50 ? "Good" : "Strong";
+  return {bits: bits, label: label, fraction: Math.min(1, bits / 60)};
+}
+
+/* ---------- hiding data in a PNG (a "tEXt" chunk, same as glyph.py) ---------- */
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+function isPng(b) { return b.length > 8 && PNG_SIGNATURE.every((v, i) => b[i] === v); }
+
+function pngChunks(png) {
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  const found = [];
+  let p = 8;
+  while (p + 12 <= png.length) {
+    const len = view.getUint32(p);
+    const type = String.fromCharCode(png[p + 4], png[p + 5], png[p + 6], png[p + 7]);
+    if (p + 12 + len > png.length) break;
+    found.push({type: type, start: p, dataStart: p + 8, len: len});
+    p += 12 + len;
+    if (type === "IEND") break;
+  }
+  return found;
+}
+
+function pngInjectText(png, keyword, text) {
+  if (!isPng(png)) throw new Error("That is not a PNG image.");
+  const kw = latin1Encode(keyword), tx = latin1Encode(text);
+  const data = concatBytes(kw, new Uint8Array([0]), tx);
+  const typeAndData = concatBytes(latin1Encode("tEXt"), data);
+  const chunk = new Uint8Array(12 + data.length);
+  const view = new DataView(chunk.buffer);
+  view.setUint32(0, data.length);
+  chunk.set(typeAndData, 4);
+  view.setUint32(8 + data.length, crc32(typeAndData));
+  const firstIdat = pngChunks(png).find(c => c.type === "IDAT");
+  if (!firstIdat) throw new Error("That PNG has no image data.");
+  return concatBytes(png.subarray(0, firstIdat.start), chunk, png.subarray(firstIdat.start));
+}
+
+function pngReadText(png, keyword) {
+  if (!isPng(png)) throw new Error("That file is not a PNG image.");
+  for (const c of pngChunks(png)) {
+    if (c.type !== "tEXt") continue;
+    const data = png.subarray(c.dataStart, c.dataStart + c.len);
+    const zero = data.indexOf(0);
+    if (zero < 0) continue;
+    if (latin1Decode(data.subarray(0, zero)) === keyword) return latin1Decode(data.subarray(zero + 1));
+  }
+  return null;
+}
+
+function extractPayload(png) {
+  const text = pngReadText(png, PNG_FIELD);
+  if (!text) {
+    throw new Error(NO_DATA_MSG);
+  }
+  try { return b64decode(text); } catch (e) { throw new Error(NOT_GLYPH_MSG); }
+}
+
+/* ---------- locked text: the same locked data as plain text, for apps that strip the hidden PNG data ---------- */
+const TEXT_PREFIX = "KVMS1";
+function lockedTextFor(payload, id) { return TEXT_PREFIX + ":" + id + ":" + b64encode(payload); }
+async function payloadFromText(text) {
+  const clean = String(text).replace(/\s+/g, "");
+  const m = /^KVMS1:([0-9a-f]{8}):([A-Za-z0-9+\/]+={0,2})$/i.exec(clean);
+  if (!m) throw new Error("This text does not look like locked glyph text. It should start with " + TEXT_PREFIX + ": and be one long run of letters and numbers.");
+  let payload;
+  try { payload = b64decode(m[2]); } catch (e) { throw new Error(NOT_GLYPH_MSG); }
+  const id = bytesToHex(await sha256(payload)).slice(0, 8);
+  if (id !== m[1].toLowerCase()) throw new Error("The text is incomplete or was changed (some apps cut long messages). Copy it again from the original.");
+  return payload;
+}
+
+/* ---------- the artwork plan (drawn from the fingerprint, never from your text) ---------- */
+
+function makeRng(fp) {
+  const v = new DataView(fp.buffer, fp.byteOffset, fp.byteLength);
+  let a = v.getUint32(0) ^ v.getUint32(16), b = v.getUint32(4) ^ v.getUint32(20),
+      c = v.getUint32(8) ^ v.getUint32(24), d = v.getUint32(12) ^ v.getUint32(28);
+  const next = () => {            // sfc32: a small, well-known random generator
+    a |= 0; b |= 0; c |= 0; d |= 0;
+    const t = (a + b | 0) + d | 0;
+    d = d + 1 | 0;
+    a = b ^ b >>> 9;
+    b = c + (c << 3) | 0;
+    c = c << 21 | c >>> 11;
+    c = c + t | 0;
+    return (t >>> 0) / 4294967296;
+  };
+  for (let i = 0; i < 15; i++) next();
+  return next;
+}
+
+function hsvToRgb(h, s, v) {
+  const i = Math.floor(h * 6), f = h * 6 - i;
+  const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+  const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i % 6];
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function planArt(fp, size) {
+  size = size || 768;
+  const rnd = makeRng(fp);
+  const pick = list => list[Math.floor(rnd() * list.length)];
+  const folds = pick([5, 6, 7, 8, 9, 10, 12]);
+  const baseHue = rnd();
+  const offsets = [0, 0.08, 0.16, 0.33, 0.5, 0.66, 0.83]
+    .map(o => [rnd(), o]).sort((x, y) => x[0] - y[0]).slice(0, 5).map(x => x[1]);
+  const palette = offsets.map(o => hsvToRgb((baseHue + o) % 1, 0.55 + 0.45 * rnd(), 0.6 + 0.4 * rnd()));
+
+  const c = (size - 1) / 2, slice = Math.PI / folds;
+  const shapes = [];
+  for (let i = 0; i < 110; i++) {
+    const distance = Math.pow(rnd(), 0.8) * c * 0.95;
+    const angle = rnd() * slice;
+    shapes.push({
+      x: c + distance * Math.cos(angle),
+      y: c + distance * Math.sin(angle),
+      s: 8 + rnd() * rnd() * size * 0.08,
+      color: pick(palette),
+      alpha: (130 + Math.floor(rnd() * 100)) / 255,
+      outline: rnd() < 0.25,
+      kind: pick(["circle", "triangle", "hexagon", "star"]),
+      spin: rnd() * Math.PI * 2,
+    });
+  }
+  return {size: size, folds: folds, shapes: shapes, background: [12, 10, 24]};
+}
+</script>
+
+<script id="ui">
+"use strict";
+/* ======================================================================
+   PAGE: everything you see and click. (Simple Mode by default;
+   the Advanced drawer holds the musical-key, budget and priority controls.)
+   ====================================================================== */
+(function () {
+  const $ = (sel, root) => (root || document).querySelector(sel);
+
+  function h(tag, props, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(props || {})) {
+      if (k === "class") e.className = v;
+      else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, "");
+      else if (v !== false && v != null) e.setAttribute(k, v);
+    }
+    for (const kid of kids.flat()) e.append(kid);
+    return e;
+  }
+
+  const EXAMPLE = {
+    title: "Sample project",
+    labels: {"C": "Coding rules", "D": "Tone", "E": "Legal", "G": "Project goals"},
+    nodes: [
+      {note: "G", text: "We are building a privacy-first AI chat tool called Kaleidoscope.", priority: 10},
+      {note: "C", text: "Write all code in Python 3 and keep functions short.", priority: 8},
+      {note: "D", text: "Explain things in plain language. The reader is not a programmer.", priority: 9},
+      {note: "C", text: "Put a comment above every function saying what it does.", priority: 5},
+      {note: "E", text: "Never claim a tool is unhackable.", priority: 7},
+      {note: "D", text: "Be friendly, but do not use slang.", priority: 3},
+    ],
+  };
+
+  // The privacy badge always tells the truth about where messages go.
+  // "download" and "ai" are used by the on-device AI chat. A cloud AI mode (not built) must switch it to "cloud".
+  const PRIVACY = {
+    local: {cls: "", text: "On your device. Nothing is saved unless you save a glyph."},
+    cloud: {cls: "cloud", text: "Cloud AI is on: your messages are sent to the AI provider you chose."},
+    download: {cls: "cloud", text: "Downloading the AI from the internet. Your notes and messages are not sent."},
+    ai: {cls: "", text: "The AI runs on your device. Your notes and chat are not sent anywhere."},
+  };
+  function setPrivacy(mode) {
+    const p = PRIVACY[mode] || PRIVACY.local;
+    $("#privacyPill").className = "pill " + p.cls;
+    $("#privacyText").textContent = p.text;
+  }
+
+  const AUTO_BUDGET = 300;     // Auto-Tune: the default token budget
+  const IDLE_MS = 15 * 60 * 1000;
+
+  const state = {
+    nodes: [],                 // {id, note, text, priority}
+    labels: {},                // note -> label
+    title: "",
+    active: new Set(NOTES),    // notes that are switched on
+    keyChoice: "all",
+    limit: true,               // Auto-Tune is on by default
+    budget: AUTO_BUDGET,
+    started: false,            // true once the visitor has begun (hides the welcome card)
+  };
+  let nextId = 1;
+  let openFile = null;
+  let loadPreviewUrl = null, previewUrl = null, downloadUrl = null;
+  let saveCancel = null, openCancel = null;       // {cancelled} tokens while a lock/unlock runs
+  let capTimer = null, capRun = 0;
+  let savedSnapshot = "";                         // what the page held when it was last saved, opened or cleared
+  let sessionPass = null;                         // kept only if the user asks for quick re-save
+  let lastActive = Date.now();
+
+  /* ---------- unsaved-session guard ---------- */
+  function snapshot() {
+    return JSON.stringify([state.nodes.map(n => [n.note, n.text, String(n.priority)]), state.labels, state.title]);
+  }
+  function hasContent() { return state.nodes.some(n => n.text.trim()); }
+  function markSaved() { savedSnapshot = snapshot(); }
+  window.addEventListener("beforeunload", e => {
+    if (hasContent() && snapshot() !== savedSnapshot) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* ---------- the keyboard bar (Advanced) ---------- */
+
+  function buildKeyboard() {
+    const wrap = $("#keys");
+    wrap.textContent = "";
+    for (const note of NOTES) {
+      const sharp = note.includes("#");
+      const button = h("button", {
+        class: "key-btn", type: "button", "aria-pressed": "true",
+        title: "Click to switch " + note + " on or off",
+        onclick: () => toggleNote(note),
+      }, h("span", {class: "key-name"}, note), h("span", {class: "key-count"}, "0 notes"));
+      const input = h("input", {
+        class: "key-label", type: "text", maxlength: "30", placeholder: "label",
+        "aria-label": "Label for note " + note,
+        oninput: e => { state.labels[note] = e.target.value; e.target.title = e.target.value; refreshNoteOptions(); refresh(); },
+      });
+      wrap.append(h("div", {class: "key " + (sharp ? "sharp" : "natural") + " on", "data-note": note}, button, input));
+    }
+  }
+
+  function buildPresets() {
+    const sel = $("#keyPreset");
+    sel.textContent = "";
+    sel.append(h("option", {value: "all"}, "All notes"));
+    for (const mode of ["major", "minor"]) {
+      for (const note of NOTES) sel.append(h("option", {value: note + "-" + mode}, note + " " + mode));
+    }
+    sel.append(h("option", {value: "custom", disabled: true}, "Custom selection"));
+    sel.addEventListener("change", () => {
+      state.active = parseKey(sel.value);
+      state.keyChoice = sel.value;
+      refresh();
+    });
+  }
+
+  function toggleNote(note) {
+    if (state.active.has(note)) state.active.delete(note); else state.active.add(note);
+    state.keyChoice = state.active.size === 12 ? "all" : "custom";
+    refresh();
+  }
+
+  function syncLabels() {
+    for (const key of document.querySelectorAll(".key")) {
+      const box = key.querySelector(".key-label");
+      box.value = state.labels[key.dataset.note] || "";
+      box.title = box.value;
+    }
+  }
+
+  /* ---------- the notes list ---------- */
+
+  function noteOptionText(note) {
+    const label = (state.labels[note] || "").trim();
+    return label ? note + " · " + label : note;
+  }
+
+  function refreshNoteOptions() {
+    for (const select of document.querySelectorAll("select.n-note")) {
+      for (const opt of select.options) opt.textContent = noteOptionText(opt.value);
+    }
+  }
+
+  function autosize(area) {
+    area.style.height = "auto";
+    area.style.height = Math.max(54, area.scrollHeight + 2) + "px";
+  }
+
+  const isPinned = n => (parseInt(n.priority, 10) || 5) >= 8;
+
+  function nodeRow(n) {
+    const select = h("select", {
+      class: "n-note adv-only", "aria-label": "Note",
+      onchange: e => { n.note = e.target.value; refresh(); },
+    }, NOTES.map(note => h("option", {value: note}, noteOptionText(note))));
+    select.value = n.note;
+
+    const priority = h("input", {
+      type: "number", min: "1", max: "10", step: "1", value: String(n.priority), "aria-label": "Priority",
+      oninput: e => { n.priority = e.target.value; syncPin(row, n); refresh(); },
+    });
+    const pin = h("button", {
+      class: "pin", type: "button", "aria-pressed": String(isPinned(n)), title: "Star the notes that matter most",
+      onclick: () => {
+        n.priority = isPinned(n) ? 5 : 9;
+        priority.value = String(n.priority);
+        syncPin(row, n);
+        refresh();
+      },
+    }, "★ Important");
+    const area = h("textarea", {
+      class: "n-text", rows: "2", placeholder: "Write one rule or fact", "aria-label": "Note text",
+      oninput: e => { n.text = e.target.value; autosize(e.target); refresh(); },
+    });
+    area.value = n.text;
+
+    const row = h("div", {class: "node", "data-id": String(n.id)},
+      h("div", {class: "node-top"},
+        select,
+        h("label", {class: "pri adv-only"}, "Priority", priority),
+        pin,
+        h("button", {
+          class: "del", type: "button", title: "Delete this note", "aria-label": "Delete this note",
+          onclick: () => { state.nodes = state.nodes.filter(x => x.id !== n.id); renderNotes(); refresh(); },
+        }, "×")),
+      area,
+      h("div", {class: "node-foot"}, h("span", {class: "badge"}), h("span", {class: "tok"})));
+    return row;
+  }
+  function syncPin(row, n) { row.querySelector(".pin").setAttribute("aria-pressed", String(isPinned(n))); }
+
+  function renderNotes() {
+    const list = $("#nodes");
+    list.textContent = "";
+    if (!state.nodes.length) {
+      list.append(h("p", {class: "empty"}, "No notes yet. Add one below."));
+      return;
+    }
+    for (const n of state.nodes) list.append(nodeRow(n));
+    for (const area of list.querySelectorAll("textarea")) autosize(area);
+  }
+
+  /* ---------- live prompt and counters ---------- */
+
+  const STATUS_TEXT = {in: "In prompt", off: "Not in key", cut: "Over budget", empty: "Empty"};
+
+  function currentBudget() {
+    return state.limit ? Math.max(0, Number(state.budget) || 0) : null;
+  }
+
+  function refresh() {
+    const usable = state.nodes.filter(n => n.text.trim());
+    const labels = cleanLabels(state.labels);
+    const session = {labels: labels, nodes: usable.map(n => cleanNode(n, 0))};
+    const budget = currentBudget();
+    const result = makePrompt(session, state.active, budget);
+
+    // welcome card or workspace
+    const showEmpty = state.nodes.length === 0 && !state.started;
+    $("#empty").hidden = !showEmpty;
+    $("#workspace").hidden = showEmpty;
+    $("#aiCard").hidden = showEmpty;
+
+    // prompt, counters, meter (Advanced preview)
+    const promptBox = $("#prompt");
+    promptBox.value = result.prompt;
+    promptBox.style.height = "auto";
+    promptBox.style.height = Math.max(210, promptBox.scrollHeight + 2) + "px";
+    const s = result.stats;
+    const total = session.nodes.length;
+    const size = budget != null ? s.tokens_used + " / " + budget : String(s.tokens_used);
+    $("#stats").innerHTML =
+      "Loaded <b>" + s.loaded + "</b> of " + total + " notes · about <b>" + size + "</b> tokens" +
+      (budget == null ? " (no limit)" : "") +
+      "<small>Skipped by key: " + s.skipped_by_key + " · Cut by budget: " + s.cut_by_budget + "</small>";
+    const meter = $("#meter");
+    meter.classList.remove("over");
+    meter.firstElementChild.style.width =
+      (budget == null ? 0 : (budget === 0 ? 0 : Math.min(100, Math.round(100 * s.tokens_used / budget)))) + "%";
+
+    // simple summary
+    let line;
+    if (!total) line = "Add a note to get started.";
+    else {
+      line = "Your AI will get <b>" + s.loaded + " of " + total + "</b> notes (about " + s.tokens_used + " tokens).";
+      if (s.cut_by_budget || s.skipped_by_key) line += " The most important notes go first. Open Advanced to change this.";
+    }
+    $("#simpleStat").innerHTML = line;
+    $("#copyBtn").disabled = !s.loaded;
+
+    // note rows
+    const byId = new Map();
+    usable.forEach((n, i) => byId.set(n.id, i));
+    for (const row of document.querySelectorAll(".node")) {
+      const n = state.nodes.find(x => x.id === Number(row.dataset.id));
+      if (!n) continue;
+      const i = byId.get(n.id);
+      const status = i === undefined ? "empty" : result.status[i];
+      row.className = "node s-" + status;
+      row.querySelector(".badge").textContent = STATUS_TEXT[status];
+      row.querySelector(".tok").textContent =
+        n.text.trim() ? "~" + estimateTokens(n.text.trim()) + " tokens" : "";
+    }
+
+    // keys
+    const counts = {};
+    for (const n of usable) counts[n.note] = (counts[n.note] || 0) + 1;
+    for (const key of document.querySelectorAll(".key")) {
+      const note = key.dataset.note;
+      const on = state.active.has(note);
+      key.classList.toggle("on", on);
+      key.classList.toggle("off", !on);
+      key.querySelector(".key-btn").setAttribute("aria-pressed", String(on));
+      const c = counts[note] || 0;
+      key.querySelector(".key-count").textContent = c + (c === 1 ? " note" : " notes");
+    }
+
+    // key menu and budget controls
+    const preset = $("#keyPreset");
+    if (preset.value !== state.keyChoice) preset.value = state.keyChoice;
+    $("#limitOn").checked = state.limit;
+    $("#budgetRange").disabled = !state.limit;
+    $("#budgetNum").disabled = !state.limit;
+    $("#budgetRange").value = String(Math.min(1000, state.budget));
+    $("#budgetNum").value = String(state.budget);
+
+    // project title line
+    const pt = $("#projectTitle");
+    const shown = state.title && state.title !== "Untitled";
+    pt.hidden = !shown;
+    pt.textContent = shown ? "Project: " + state.title : "";
+
+    scheduleCapacity();
+  }
+
+  /* ---------- capacity meter (500,000-byte limit) ---------- */
+
+  function scheduleCapacity() {
+    clearTimeout(capTimer);
+    capTimer = setTimeout(updateCapacity, 250);
+  }
+  async function updateCapacity() {
+    const run = ++capRun;
+    const usable = state.nodes.filter(n => n.text.trim());
+    let bytes = 0;
+    try {
+      const session = {version: 2, title: cleanTitle(state.title), saved_at: 0,
+                       labels: cleanLabels(state.labels), nodes: usable.map(n => cleanNode(n, 0))};
+      if (typeof CompressionStream !== "undefined") bytes = await estimatePayloadSize(session);
+    } catch (e) { bytes = 0; }
+    if (run !== capRun) return;
+    const pct = Math.min(100, Math.round(100 * bytes / MAX_PAYLOAD));
+    const over = bytes > MAX_PAYLOAD || bytes - HEADER_V2_LEN - 16 > BUCKETS[BUCKETS.length - 1];
+    $("#capText").textContent = "Glyph size: " + bytes.toLocaleString() + " of " + MAX_PAYLOAD.toLocaleString() +
+      " bytes (" + (bytes && pct === 0 ? "<1" : pct) + "%)" + (over ? " - too big, trim some notes" : " - padded so the size hides how much you wrote");
+    const meter = $("#capMeter");
+    meter.classList.toggle("over", over);
+    meter.firstElementChild.style.width = pct + "%";
+  }
+  function updateFilenamePreview() {
+    const t = stampParts({});
+    $("#fnamePreview").textContent = "File name: KVMS_" + t.date + "_" + t.hh + t.mm + "_XXXXXXXX.png";
+  }
+  function updateStrength() {
+    const r = passkeyStrength($("#savePw").value);
+    $("#strengthText").textContent = r.bits ? "Passkey strength: " + r.label : "Passkey strength";
+    const bar = $("#strengthBar");
+    bar.style.width = Math.round(100 * r.fraction) + "%";
+    bar.style.background = r.label === "Weak" ? "var(--bad)" : r.label === "Fair" ? "#ffc48a" : "var(--good)";
+  }
+
+  /* ---------- toolbar and notes buttons ---------- */
+
+  function loadNodes(nodes, labels) {
+    state.nodes = nodes.map(n => ({id: nextId++, note: n.note, text: n.text, priority: n.priority}));
+    state.labels = Object.assign({}, labels || {});
+    state.active = new Set(NOTES);
+    state.keyChoice = "all";
+    renderNotes();
+    syncLabels();
+    refreshNoteOptions();
+    refresh();
+  }
+
+  function setStatus(text, kind) {
+    const e = $("#status");
+    e.hidden = !text;
+    e.textContent = text || "";
+    e.className = "status" + (kind ? " " + kind : "");
+  }
+
+  function setAdvanced(on) {
+    document.body.classList.toggle("adv", on);
+    $("#advPanel").hidden = !on;
+    $("#advBtn").setAttribute("aria-expanded", String(on));
+    if (on) refresh();
+  }
+
+  function addBlankNote() {
+    state.started = true;
+    const first = NOTES.find(n => state.active.has(n)) || "C";
+    state.nodes.push({id: nextId++, note: first, text: "", priority: 5});
+    renderNotes();
+    refresh();
+    const areas = document.querySelectorAll("#nodes textarea");
+    if (areas.length) areas[areas.length - 1].focus();
+  }
+
+  function wireToolbar() {
+    $("#advBtn").addEventListener("click", () => setAdvanced(!document.body.classList.contains("adv")));
+    $("#allBtn").addEventListener("click", () => { state.active = new Set(NOTES); state.keyChoice = "all"; refresh(); });
+    $("#noneBtn").addEventListener("click", () => { state.active = new Set(); state.keyChoice = "custom"; refresh(); });
+    $("#limitOn").addEventListener("change", e => { state.limit = e.target.checked; refresh(); });
+    $("#budgetRange").addEventListener("input", e => { state.budget = Number(e.target.value); refresh(); });
+    $("#budgetNum").addEventListener("input", e => { state.budget = Number(e.target.value) || 0; refresh(); });
+
+    $("#addBtn").addEventListener("click", addBlankNote);
+    $("#blankBtn").addEventListener("click", addBlankNote);
+    $("#sampleBtn").addEventListener("click", () => {
+      state.started = true;
+      state.title = EXAMPLE.title;
+      loadNodes(EXAMPLE.nodes, EXAMPLE.labels);
+      markSaved();
+      setStatus("Sample project loaded. Edit anything, then press Save Glyph to lock it into a picture.", "ok");
+    });
+
+    $("#copyBtn").addEventListener("click", async () => {
+      const ok = await copyToClipboard($("#prompt").value);
+      const msg = $("#copyMsg");
+      msg.textContent = ok ? "Copied" : "Open Advanced and press Ctrl+C";
+      setTimeout(() => { msg.textContent = ""; }, 2000);
+    });
+  }
+
+  /* ---------- artwork ---------- */
+
+  function renderArt(plan) {
+    const size = plan.size;
+    const shapeCanvas = document.createElement("canvas");
+    shapeCanvas.width = shapeCanvas.height = size;
+    const g = shapeCanvas.getContext("2d", {willReadFrequently: true});
+    const bg = plan.background;
+    g.fillStyle = "rgb(" + bg.join(",") + ")";
+    g.fillRect(0, 0, size, size);
+    g.lineWidth = 2;
+
+    for (const sh of plan.shapes) {
+      const rgb = sh.color.join(",");
+      g.fillStyle = "rgba(" + rgb + "," + sh.alpha + ")";
+      g.strokeStyle = "rgb(" + rgb + ")";
+      g.beginPath();
+      if (sh.kind === "circle") {
+        g.arc(sh.x, sh.y, sh.s, 0, Math.PI * 2);
+      } else {
+        const sides = {triangle: 3, hexagon: 6, star: 10}[sh.kind];
+        for (let k = 0; k < sides; k++) {
+          const reach = (sh.kind === "star" && (k & 1)) ? sh.s * 0.45 : sh.s;
+          const a = sh.spin + Math.PI * 2 * k / sides;
+          const px = sh.x + reach * Math.cos(a), py = sh.y + reach * Math.sin(a);
+          if (k === 0) g.moveTo(px, py); else g.lineTo(px, py);
+        }
+        g.closePath();
+      }
+      if (sh.outline) g.stroke(); else g.fill();
+    }
+
+    const src = g.getImageData(0, 0, size, size).data;
+    const out = new ImageData(size, size);
+    const dst = out.data;
+    const c = (size - 1) / 2, slice = Math.PI / plan.folds, TWO_PI = Math.PI * 2;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - c, dy = y - c;
+        const r = Math.hypot(dx, dy);
+        const o = (y * size + x) * 4;
+        if (r > c) {
+          dst[o] = bg[0]; dst[o + 1] = bg[1]; dst[o + 2] = bg[2]; dst[o + 3] = 255;
+          continue;
+        }
+        let theta = Math.atan2(dy, dx);
+        if (theta < 0) theta += TWO_PI;
+        let t = theta % (2 * slice);
+        if (t > slice) t = 2 * slice - t;
+        const sx = Math.min(size - 1, Math.max(0, Math.round(c + r * Math.cos(t))));
+        const sy = Math.min(size - 1, Math.max(0, Math.round(c + r * Math.sin(t))));
+        const from = (sy * size + sx) * 4;
+        dst[o] = src[from]; dst[o + 1] = src[from + 1]; dst[o + 2] = src[from + 2]; dst[o + 3] = 255;
+      }
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    canvas.getContext("2d").putImageData(out, 0, 0);
+    return canvas;
+  }
+
+  /* The visible label: a dark strip along the bottom with the format, time and ID. */
+  function drawLabel(canvas, text) {
+    const g = canvas.getContext("2d"), size = canvas.width, strip = 44;
+    g.fillStyle = "rgba(12,10,24,0.92)";
+    g.fillRect(0, size - strip, size, strip);
+    g.fillStyle = "rgba(70,227,200,0.63)";
+    g.fillRect(0, size - strip, size, 1);
+    g.font = "17px ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillStyle = "#ece9ff";
+    g.fillText(text, size / 2, size - strip / 2 + 1);
+  }
+
+  /* ---------- small helpers for the dialogs ---------- */
+
+  function setMsg(id, text, kind) {
+    const e = $(id);
+    e.textContent = text || "";
+    e.className = "msg" + (kind ? " " + kind : "");
+  }
+  function setProgress(id, fraction) {
+    const bar = $(id);
+    bar.classList.toggle("on", fraction != null);
+    bar.firstElementChild.style.width = Math.round(100 * (fraction || 0)) + "%";
+  }
+  function showSavedPreview(blob) {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(blob);
+    const img = $("#preview");
+    img.src = previewUrl;
+    img.hidden = false;
+  }
+  function busy(which, on) {
+    const isSave = which === "save";
+    $(isSave ? "#saveBtn" : "#openBtn").disabled = on;
+    if (isSave) $("#quickBtn").disabled = on;
+    $(isSave ? "#saveCancel" : "#openCancel").hidden = !on;
+  }
+
+  function rememberPass(pw) { sessionPass = pw; lastActive = Date.now(); updateQuickUi(); }
+  function forgetPass() { sessionPass = null; updateQuickUi(); }
+  function updateQuickUi() {
+    $("#quickBadge").hidden = !sessionPass;
+    $("#quickBtn").hidden = !sessionPass;
+  }
+
+  /* ---------- Save Glyph ---------- */
+
+  function openSave() {
+    if (!state.nodes.some(n => n.text.trim())) {
+      setStatus("Add at least one note before saving.", "err");
+      return;
+    }
+    $("#saveForm").hidden = false;
+    $("#saveResult").hidden = true;
+    $("#saveTitle").value = state.title;
+    for (const id of ["#savePw", "#savePw2"]) $(id).value = "";
+    $("#keepPass").checked = false;
+    $("#suggestTip").hidden = true;
+    setMsg("#saveMsg", "");
+    updateFilenamePreview(); updateStrength(); updateQuickUi(); updateCapacity();
+    $("#saveDlg").showModal();
+    $(sessionPass ? "#quickBtn" : "#savePw").focus();
+  }
+
+  async function doSave(quick) {
+    setMsg("#saveMsg", "");
+    state.title = $("#saveTitle").value;
+    const pw = quick ? sessionPass : $("#savePw").value;
+    if (!pw) return setMsg("#saveMsg", "The passkey cannot be empty.", "err");
+    if (!quick && pw !== $("#savePw2").value) return setMsg("#saveMsg", "The two passkeys did not match.", "err");
+    let session;
+    try { session = buildSession(state.nodes, state.labels, state.title); }
+    catch (e) { return setMsg("#saveMsg", e.message, "err"); }
+    if (!session.nodes.length) return setMsg("#saveMsg", "Add at least one note first.", "err");
+
+    busy("save", true);
+    saveCancel = {cancelled: false};
+    setMsg("#saveMsg", "Locking… this takes a few seconds.");
+    setProgress("#saveProg", 0);
+    try {
+      const payload = await encryptSession(session, pw, f => setProgress("#saveProg", f), saveCancel);
+      if (payload.length > MAX_PAYLOAD) throw new Error("Too much text for one glyph (limit " + MAX_PAYLOAD.toLocaleString() + " bytes). Trim some notes and try again.");
+      const fingerprint = await sha256(payload);
+      const id = bytesToHex(fingerprint).slice(0, 8);
+      const canvas = renderArt(planArt(fingerprint));
+      drawLabel(canvas, glyphLabel(session, id));
+      const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      const png = new Uint8Array(await pngBlob.arrayBuffer());
+      const finalPng = pngInjectText(png, PNG_FIELD, b64encode(payload));
+      lockedText = lockedTextFor(payload, id);
+      $("#copyLockedMsg").textContent = "";
+      const blob = new Blob([finalPng], {type: "image/png"});
+      const name = glyphFilename(session, id);
+
+      showSavedPreview(blob);
+      $("#gid").textContent = "";
+      $("#gid").append("Saved as ", h("b", {}, name), ". Glyph ID: ", h("b", {}, id), ".");
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+      downloadUrl = URL.createObjectURL(blob);
+      const link = $("#dlLink");
+      link.href = downloadUrl;
+      link.download = name;
+      link.hidden = false;
+      link.click();
+      markSaved();
+      if (quick || $("#keepPass").checked) rememberPass(pw);
+      setStatus("Saved " + session.nodes.length + " notes as " + name + ". Keep a backup copy, and remember your passkey.", "ok");
+      $("#saveForm").hidden = true;
+      $("#saveResult").hidden = false;
+      $("#savePw").value = ""; $("#savePw2").value = ""; updateStrength();
+      refresh();
+    } catch (e) {
+      setMsg("#saveMsg", e.message, e.message === CANCELLED_MSG ? "" : "err");
+    } finally {
+      saveCancel = null;
+      setProgress("#saveProg", null);
+      busy("save", false);
+    }
+  }
+
+  /* ---------- Load Glyph ---------- */
+
+  let lockedText = null;       // locked text of the glyph just saved (only kept in memory)
+  async function copyToClipboard(text) {
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { /* fall back below */ }
+    if (!ok) {
+      const tmp = h("textarea", {"aria-hidden": "true", style: "position:fixed;left:-9999px;top:0"});
+      tmp.value = text; document.body.append(tmp); tmp.select();
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      tmp.remove();
+    }
+    return ok;
+  }
+
+  function chooseFile(file) {
+    openFile = file || null;
+    $("#dropText").textContent = file ? file.name : "Drop a glyph PNG here, or click to choose";
+    setMsg("#openMsg", "");
+    const img = $("#loadPreview");
+    if (loadPreviewUrl) { URL.revokeObjectURL(loadPreviewUrl); loadPreviewUrl = null; }
+    if (file) { loadPreviewUrl = URL.createObjectURL(file); img.src = loadPreviewUrl; img.hidden = false; }
+    else { img.hidden = true; img.removeAttribute("src"); }
+  }
+
+  function openLoad(file) {
+    const dlg = $("#loadDlg");
+    if ($("#saveDlg").open) $("#saveDlg").close();
+    $("#openPw").value = "";
+    $("#keepPass2").checked = false;
+    chooseFile(file || null);
+    if (!dlg.open) dlg.showModal();
+    $(file ? "#openPw" : "#drop").focus();
+  }
+
+  async function doOpen() {
+    setMsg("#openMsg", "");
+    const pasted = $("#pasteIn").value.trim();
+    if (!openFile && !pasted) return setMsg("#openMsg", "Choose a glyph PNG first, or paste the locked text.", "err");
+    const pw = $("#openPw").value;
+    if (!pw) return setMsg("#openMsg", "Type the passkey.", "err");
+
+    busy("open", true);
+    openCancel = {cancelled: false};
+    try {
+      const payload = pasted
+        ? await payloadFromText(pasted)
+        : extractPayload(new Uint8Array(await openFile.arrayBuffer()));   // "no hidden glyph data" problems show up here
+      setMsg("#openMsg", "Unlocking… this takes a few seconds.");
+      setProgress("#openProg", 0);
+      const session = await decryptSession(payload, pw, f => setProgress("#openProg", f), openCancel);
+      if (!session || !Array.isArray(session.nodes)) throw new Error("This glyph has an unexpected format.");
+      const nodes = session.nodes.map(n => ({
+        note: normalizeNote(n.note), text: String(n.text), priority: Number(n.priority) || 5,
+      }));
+      const labels = {};
+      for (const [k, v] of Object.entries(session.labels || {})) labels[normalizeNote(k)] = String(v);
+      state.started = true;
+      state.title = session.title ? cleanTitle(session.title) : "";
+      loadNodes(nodes, labels);
+      markSaved();
+      if ($("#keepPass2").checked) rememberPass(pw);
+      setStatus("Unlocked " + nodes.length + " notes from " + (pasted ? "the pasted text" : openFile.name) + "." +
+        (state.title ? " Title: " + state.title + "." : ""), "ok");
+      $("#openPw").value = ""; $("#pasteIn").value = "";
+      $("#loadDlg").close();
+    } catch (e) {
+      setMsg("#openMsg", e.message, e.message === CANCELLED_MSG ? "" : "err");
+    } finally {
+      openCancel = null;
+      setProgress("#openProg", null);
+      busy("open", false);
+    }
+  }
+
+  /* Clear Session: forget everything on this page (notes, labels, title, passkeys, previews). */
+  function clearSession() {
+    if (saveCancel) saveCancel.cancelled = true;
+    if (openCancel) openCancel.cancelled = true;
+    for (const d of document.querySelectorAll("dialog")) if (d.open) d.close();
+    forgetPass();
+    aiReset();
+    state.title = ""; state.started = false;
+    state.limit = true; state.budget = AUTO_BUDGET;
+    loadNodes([], {});
+    for (const id of ["#saveTitle", "#savePw", "#savePw2", "#openPw", "#pasteIn"]) $(id).value = "";
+    lockedText = null; $("#copyLockedMsg").textContent = "";
+    $("#suggestTip").hidden = true;
+    setMsg("#saveMsg", ""); setMsg("#openMsg", ""); setStatus("");
+    chooseFile(null);
+    $("#fileIn").value = "";
+    const img = $("#preview"); img.hidden = true; img.removeAttribute("src");
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    if (downloadUrl) { URL.revokeObjectURL(downloadUrl); downloadUrl = null; }
+    const link = $("#dlLink"); link.hidden = true; link.removeAttribute("href");
+    $("#gid").textContent = "";
+    updateFilenamePreview(); updateStrength(); refresh();
+    markSaved();
+  }
+
+  function wireDialogs() {
+    $("#saveOpenBtn").addEventListener("click", openSave);
+    $("#loadBtn").addEventListener("click", () => openLoad(null));
+    $("#loadBtn2").addEventListener("click", () => openLoad(null));
+    $("#saveBtn").addEventListener("click", () => doSave(false));
+    $("#quickBtn").addEventListener("click", () => doSave(true));
+    $("#openBtn").addEventListener("click", doOpen);
+    $("#copyLockedBtn").addEventListener("click", async () => {
+      if (!lockedText) return;
+      $("#copyLockedMsg").textContent = (await copyToClipboard(lockedText)) ? "Copied" : "Could not copy. Press Download again and keep the picture.";
+    });
+    $("#openPw").addEventListener("keydown", e => { if (e.key === "Enter") doOpen(); });
+    $("#savePw2").addEventListener("keydown", e => { if (e.key === "Enter") doSave(false); });
+    $("#saveCancel").addEventListener("click", () => { if (saveCancel) saveCancel.cancelled = true; });
+    $("#openCancel").addEventListener("click", () => { if (openCancel) openCancel.cancelled = true; });
+    $("#saveX").addEventListener("click", () => $("#saveDlg").close());
+    $("#saveDone").addEventListener("click", () => $("#saveDlg").close());
+    $("#loadX").addEventListener("click", () => $("#loadDlg").close());
+    // closing a window stops any lock or unlock still running in it, and empties its passkey boxes
+    $("#saveDlg").addEventListener("close", () => { if (saveCancel) saveCancel.cancelled = true; for (const id of ["#savePw", "#savePw2"]) $(id).value = ""; });
+    $("#loadDlg").addEventListener("close", () => { if (openCancel) openCancel.cancelled = true; $("#openPw").value = ""; $("#pasteIn").value = ""; });
+    $("#clearSessionBtn").addEventListener("click", () => {
+      if (hasContent() && snapshot() !== savedSnapshot &&
+          !confirm("Clear this session? Notes, labels, title, passkeys and previews are removed from this page. Saved glyph files are not touched.")) return;
+      clearSession();
+    });
+    $("#saveTitle").addEventListener("input", e => { state.title = e.target.value; scheduleCapacity(); });
+    $("#savePw").addEventListener("input", updateStrength);
+    $("#suggestBtn").addEventListener("click", () => {
+      const phrase = suggestPassphrase(4);
+      const tip = $("#suggestTip");
+      tip.textContent = "";
+      tip.append("Try: ", h("b", {}, phrase), " (4 random words, about " + Math.round(4 * Math.log2(WORDS.length)) +
+        " bits). Add a 5th word for extra safety. Made on this page, never sent anywhere. Write it down: there is no reset.");
+      tip.hidden = false;
+      $("#savePw").value = phrase; $("#savePw2").value = phrase;
+      updateStrength();
+    });
+    $("#fileIn").addEventListener("change", e => chooseFile(e.target.files[0]));
+    document.addEventListener("pointerdown", () => { lastActive = Date.now(); }, true);
+    document.addEventListener("keydown", () => { lastActive = Date.now(); }, true);
+    setInterval(() => { if (sessionPass && Date.now() - lastActive > IDLE_MS) forgetPass(); }, 30000);
+  }
+
+  /* Drop a glyph anywhere on the page to open it. */
+  function wireDropAnywhere() {
+    const veil = $("#dropOverlay");
+    let depth = 0;
+    const hasFiles = e => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+    window.addEventListener("dragenter", e => { if (!hasFiles(e)) return; e.preventDefault(); depth++; veil.hidden = false; });
+    window.addEventListener("dragover", e => { if (hasFiles(e)) e.preventDefault(); });
+    window.addEventListener("dragleave", e => { if (!hasFiles(e)) return; depth = Math.max(0, depth - 1); if (!depth) veil.hidden = true; });
+    window.addEventListener("drop", e => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0; veil.hidden = true;
+      const file = e.dataTransfer.files[0];
+      if (file) openLoad(file);
+    });
+  }
+
+  /* ======================================================================
+     PRIVATE AI CHAT (Step 3B). A small AI that runs inside this browser
+     using WebGPU. Nothing here runs until the visitor presses a button.
+       - the AI software is loaded from one pinned address (AI_LIB_URL)
+       - the model files come from Hugging Face, once, and are kept by the browser
+       - notes and messages are never sent anywhere; the AI's words are shown as plain text only
+     ====================================================================== */
+  const AI_LIB_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.82/+esm";
+  const AI_MODELS = [
+    {base: "Qwen2.5-0.5B-Instruct", name: "Small and fast (Qwen 2.5, 0.5 billion)"},
+    {base: "Llama-3.2-1B-Instruct", name: "Better answers, bigger download (Llama 3.2, 1 billion)"},
+    {base: "Llama-3.2-3B-Instruct", name: "Smarter, about 2 GB download (Llama 3.2, 3 billion)"},
+    {base: "Qwen2.5-3B-Instruct", name: "Smarter, about 2 GB download (Qwen 2.5, 3 billion)"},
+    {base: "Phi-3.5-mini-instruct", name: "Smarter, about 2.5 GB download (Phi 3.5 mini, 3.8 billion)"},
+  ];
+  const ai = {
+    gpu: null,        // {ok, f16, why}
+    mod: null,        // the AI software, once loaded
+    engine: null,
+    phase: "idle",    // idle | loading | ready
+    sizeFor: "",      // model id whose size has been checked
+    loadToken: null,  // {cancelled} while a download runs
+    gen: null,        // {stop} while the AI is answering
+    msgs: [],         // chat history: {role, content}
+    busy: false,
+    epoch: 0,         // bumps on Clear Session so late replies are ignored
+  };
+
+  function aiModelId() {
+    const m = AI_MODELS[Number($("#aiModel").value) || 0];
+    return m.base + (ai.gpu && ai.gpu.f16 ? "-q4f16_1-MLC" : "-q4f32_1-MLC");
+  }
+  function fmtBytes(n) { return n >= 1e9 ? (n / 1e9).toFixed(2) + " GB" : Math.max(1, Math.round(n / 1e6)) + " MB"; }
+  function setAiMsg(text, kind) { const e = $("#aiMsg"); e.textContent = text || ""; e.className = "msg" + (kind ? " " + kind : ""); }
+  function setChatMsg(text, kind) { const e = $("#chatMsg"); e.textContent = text || ""; e.className = "msg" + (kind ? " " + kind : ""); }
+  function setAiProgress(frac) {
+    const bar = $("#aiProg");
+    bar.classList.toggle("on", frac != null);
+    bar.firstElementChild.style.width = frac == null ? "0%" : Math.round(100 * Math.min(1, Math.max(0, frac))) + "%";
+  }
+
+  async function aiGpuCheck() {
+    if (ai.gpu) return ai.gpu;
+    let r = {ok: false, f16: false, why: "This browser cannot run the on-device AI because it has no WebGPU. Try a recent Chrome or Edge on a computer. Copy prompt still works with any AI."};
+    try {
+      if (navigator.gpu && typeof navigator.gpu.requestAdapter === "function") {
+        const a = await navigator.gpu.requestAdapter();
+        if (a) r = {ok: true, f16: !!(a.features && a.features.has && a.features.has("shader-f16")), why: ""};
+        else r.why = "WebGPU is present, but no usable graphics card was found, so the on-device AI cannot run here. Copy prompt still works with any AI.";
+      }
+    } catch (e) { /* keep the default message */ }
+    ai.gpu = r;
+    return r;
+  }
+
+  function aiRender() {
+    const ok = ai.gpu && ai.gpu.ok;
+    $("#aiGpuMsg").textContent = ai.gpu ? (ok ? "" : ai.gpu.why) : "Checking whether this browser can run the AI...";
+    $("#aiGpuMsg").className = "msg" + (ai.gpu && !ok ? " err" : "");
+    $("#aiSetup").hidden = !ok || ai.phase === "ready";
+    $("#aiChat").hidden = !(ok && ai.phase === "ready");
+    const loading = ai.phase === "loading";
+    $("#aiModel").disabled = loading;
+    $("#aiSizeBtn").disabled = loading;
+    $("#aiStartBtn").disabled = loading || ai.sizeFor !== aiModelId();
+    $("#aiCancelBtn").hidden = !loading;
+    $("#aiDeleteBtn").disabled = loading;
+    $("#chatSend").disabled = ai.busy;
+    $("#chatStop").hidden = !(ai.gen && !ai.gen.stop);
+    $("#chatNew").disabled = ai.busy;
+    $("#chatSuggest").disabled = ai.busy;
+    $("#aiUnloadBtn").disabled = ai.busy;
+  }
+
+  async function aiCheckSize() {
+    const id = aiModelId();
+    setAiMsg("Checking the download size...");
+    $("#aiSizeBtn").disabled = true;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    let total = 0;
+    try {
+      const res = await fetch("https://huggingface.co/api/models/mlc-ai/" + id + "?blobs=true",
+        {signal: ctl.signal, credentials: "omit", referrerPolicy: "no-referrer"});
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const info = await res.json();
+      const files = Array.isArray(info.siblings) ? info.siblings : [];
+      total = files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+    } catch (e) { total = 0; }
+    clearTimeout(timer);
+    ai.sizeFor = id;
+    const tip = $("#aiSizeTip");
+    if (total) {
+      let text = "Download size: " + fmtBytes(total) + ", once. Press Download and start when you are ready.";
+      try {
+        const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+        if (est && est.quota && est.quota - (est.usage || 0) < total * 1.2)
+          text += " Warning: this browser may not have enough free storage for it.";
+      } catch (e) { /* ignore */ }
+      tip.textContent = text;
+      setAiMsg("");
+    } else {
+      tip.textContent = "The download size could not be checked (you may be offline). Small models like these are usually a few hundred megabytes up to about a gigabyte. You can still try Download and start.";
+      setAiMsg("");
+    }
+    aiRender();
+  }
+
+  async function aiStart() {
+    if (ai.phase !== "idle" || ai.sizeFor !== aiModelId()) return;
+    const token = {cancelled: false};
+    ai.loadToken = token;
+    ai.phase = "loading";
+    setPrivacy("download");
+    setAiProgress(0);
+    setAiMsg("Loading the AI software...");
+    aiRender();
+    const id = aiModelId();
+    let engine = null;
+    try {
+      if (!ai.mod) ai.mod = await import(AI_LIB_URL);
+      if (token.cancelled) return;
+      const list = (ai.mod.prebuiltAppConfig && ai.mod.prebuiltAppConfig.model_list) || [];
+      if (!list.some(m => m.model_id === id)) throw new Error("The installed AI software does not offer " + id + ".");
+      setAiMsg("Starting...");
+      engine = new ai.mod.MLCEngine({
+        initProgressCallback: rep => {
+          if (token.cancelled) return;
+          if (rep && typeof rep.progress === "number") setAiProgress(rep.progress);
+          if (rep && rep.text) setAiMsg(String(rep.text).slice(0, 160));
+        },
+      });
+      ai.engine = engine;
+      await engine.reload(id);
+      if (token.cancelled) { try { await engine.unload(); } catch (e) { /* ignore */ } return; }
+      ai.phase = "ready";
+      setAiMsg(""); setAiProgress(null);
+      setPrivacy("ai");
+      setChatMsg("");
+    } catch (e) {
+      if (token.cancelled) return;
+      ai.phase = "idle"; ai.engine = null;
+      setAiProgress(null);
+      setPrivacy("local");
+      setAiMsg("Could not start the AI: " + (e && e.message ? String(e.message).replace(/\.+$/, "") : "unknown error") +
+        ". Check your internet connection and that this browser allows WebGPU, then try again.", "err");
+    } finally {
+      if (ai.loadToken === token) ai.loadToken = null;
+      aiRender();
+    }
+  }
+
+  function aiCancelDownload() {
+    const token = ai.loadToken;
+    if (!token) return;
+    token.cancelled = true;
+    ai.loadToken = null;
+    const eng = ai.engine; ai.engine = null;
+    if (eng) { try { Promise.resolve(eng.unload()).catch(() => {}); } catch (e) { /* ignore */ } }
+    ai.phase = "idle";
+    setAiProgress(null);
+    setPrivacy("local");
+    setAiMsg("Download stopped. Parts already downloaded are kept by this browser and will be reused.");
+    aiRender();
+  }
+
+  async function aiUnload() {
+    const eng = ai.engine; ai.engine = null;
+    ai.phase = "idle";
+    if (eng) { try { await eng.unload(); } catch (e) { /* ignore */ } }
+    setPrivacy("local");
+    aiRender();
+  }
+
+  /* Clear Session also empties the chat and frees the AI's memory. The downloaded model files stay in the browser. */
+  function aiReset() {
+    ai.epoch++;
+    if (ai.gen) { ai.gen.stop = true; try { ai.engine && ai.engine.interruptGenerate(); } catch (e) { /* ignore */ } }
+    ai.gen = null; ai.busy = false;
+    if (ai.loadToken) aiCancelDownload();
+    ai.msgs = [];
+    $("#chatLog").textContent = "";
+    $("#chatIn").value = "";
+    $("#suggestBox").textContent = ""; $("#suggestBox").hidden = true;
+    setChatMsg(""); setAiMsg("");
+    aiUnload();
+  }
+
+  function addBubble(kind, text) {
+    const b = h("div", {class: "bub " + kind});
+    b.textContent = text;            // always plain text, never HTML
+    const log = $("#chatLog");
+    log.append(b);
+    log.scrollTop = log.scrollHeight;
+    return b;
+  }
+
+  function aiSystemPrompt() {
+    const usable = state.nodes.filter(n => n.text.trim());
+    const session = {labels: cleanLabels(state.labels), nodes: usable.map(n => cleanNode(n, 0))};
+    return makePrompt(session, state.active, currentBudget()).prompt;
+  }
+
+  async function chatSend() {
+    const input = $("#chatIn");
+    const text = input.value.trim();
+    if (!text || ai.phase !== "ready" || ai.busy || !ai.engine) return;
+    const epoch = ai.epoch, engine = ai.engine;
+    ai.busy = true;
+    input.value = "";
+    setChatMsg("");
+    ai.msgs.push({role: "user", content: text});
+    addBubble("user", text);
+    const bubble = addBubble("ai", "...");
+    const gen = {stop: false};
+    ai.gen = gen;
+    aiRender();
+    const sys = aiSystemPrompt();
+    const messages = (sys ? [{role: "system", content: sys}] : []).concat(ai.msgs);
+    let reply = "", failed = false;
+    try {
+      const stream = await engine.chat.completions.create({messages: messages, stream: true, temperature: 0.7, max_tokens: 512});
+      for await (const chunk of stream) {
+        if (epoch !== ai.epoch) return;
+        const d = chunk && chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content;
+        if (d) { reply += d; bubble.textContent = reply; $("#chatLog").scrollTop = $("#chatLog").scrollHeight; }
+        if (gen.stop) break;
+      }
+    } catch (e) {
+      if (epoch !== ai.epoch) return;
+      if (!gen.stop) {
+        failed = true;
+        bubble.className = "bub ai err";
+        bubble.textContent = "The AI could not answer: " + (e && e.message ? e.message : "unknown error") +
+          ". If the chat is very long, press New chat.";
+      }
+    }
+    if (epoch !== ai.epoch) return;
+    if (reply) ai.msgs.push({role: "assistant", content: reply});
+    else { ai.msgs.pop(); if (!failed) bubble.remove(); }   // keep the history in matching pairs
+    if (gen.stop && reply) bubble.textContent = reply + " [stopped]";
+    ai.gen = null; ai.busy = false;
+    aiRender();
+  }
+
+  function chatStop() {
+    if (!ai.gen) return;
+    ai.gen.stop = true;
+    try { ai.engine && ai.engine.interruptGenerate(); } catch (e) { /* ignore */ }
+    aiRender();
+  }
+
+  function chatNew() {
+    if (ai.busy) return;
+    ai.msgs = [];
+    $("#chatLog").textContent = "";
+    $("#suggestBox").textContent = ""; $("#suggestBox").hidden = true;
+    setChatMsg("");
+    try { ai.engine && ai.engine.resetChat && Promise.resolve(ai.engine.resetChat()).catch(() => {}); } catch (e) { /* ignore */ }
+  }
+
+  /* "Suggest notes": the AI proposes notes; nothing is added until the visitor presses Keep. */
+  function parseSuggestions(text) {
+    const have = new Set(state.nodes.map(n => n.text.trim().toLowerCase()));
+    const out = [];
+    for (const line of String(text || "").split(/\r?\n/)) {
+      const m = /^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$/.exec(line);
+      if (!m) continue;
+      const t = m[1].replace(/^["'`]+|["'`]+$/g, "").trim();
+      if (t.length < 3 || t.length > 200 || have.has(t.toLowerCase())) continue;
+      have.add(t.toLowerCase());
+      out.push(t);
+      if (out.length >= 5) break;
+    }
+    return out;
+  }
+
+  function keepSuggestion(t, row) {
+    state.started = true;
+    const note = NOTES.find(n => state.active.has(n)) || "C";
+    state.nodes.push({id: nextId++, note: note, text: t, priority: 5});
+    renderNotes(); refresh();
+    row.remove();
+    if (!$("#suggestBox").children.length) $("#suggestBox").hidden = true;
+  }
+
+  async function chatSuggest() {
+    if (ai.phase !== "ready" || ai.busy || !ai.engine) return;
+    if (!ai.msgs.length) { setChatMsg("Chat a little first, then ask for suggestions."); return; }
+    const epoch = ai.epoch, engine = ai.engine;
+    ai.busy = true; setChatMsg("Reading the chat for notes worth keeping..."); aiRender();
+    const transcript = ai.msgs.map(m => (m.role === "user" ? "User: " : "AI: ") + m.content).join("\n").slice(-6000);
+    const messages = [
+      {role: "system", content: "You turn conversations into short reusable notes. Reply with at most 5 lines. Each line starts with '- ' and holds ONE short rule or fact worth remembering for future chats, under 20 words. No other text."},
+      {role: "user", content: "Conversation:\n" + transcript + "\n\nWrite the notes."},
+    ];
+    let items = [], failed = "";
+    try {
+      const res = await engine.chat.completions.create({messages: messages, stream: false, temperature: 0.2, max_tokens: 300});
+      const content = res && res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content;
+      items = parseSuggestions(content);
+    } catch (e) { failed = e && e.message ? e.message : "unknown error"; }
+    if (epoch !== ai.epoch) return;
+    ai.busy = false;
+    const box = $("#suggestBox");
+    box.textContent = "";
+    if (failed) setChatMsg("Could not get suggestions: " + failed, "err");
+    else if (!items.length) setChatMsg("The AI did not suggest any new notes this time.");
+    else {
+      setChatMsg("Suggestions. Nothing is added until you press Keep.");
+      for (const t of items) {
+        const row = h("div", {class: "sugg"});
+        const label = h("span", {}); label.textContent = t;
+        row.append(label,
+          h("button", {class: "primary", type: "button", onclick: () => keepSuggestion(t, row)}, "Keep"),
+          h("button", {class: "ghost", type: "button", onclick: () => { row.remove(); if (!box.children.length) box.hidden = true; }}, "Dismiss"));
+        box.append(row);
+      }
+      box.hidden = false;
+    }
+    aiRender();
+  }
+
+  async function aiDeleteModel() {
+    const id = aiModelId();
+    setAiMsg("Removing the downloaded AI from this browser...");
+    try {
+      if (!ai.mod) ai.mod = await import(AI_LIB_URL);
+      await ai.mod.deleteModelAllInfoInCache(id);
+      ai.sizeFor = "";
+      $("#aiSizeTip").textContent = "Check the size first. The download happens once; next time the AI loads from this browser's storage.";
+      setAiMsg("Removed. Starting it again will download it again.", "ok");
+    } catch (e) {
+      setAiMsg("Could not remove it: " + (e && e.message ? e.message : "unknown error") + ". You can also clear this page's site data in the browser settings.", "err");
+    }
+    aiRender();
+  }
+
+  function wireAi() {
+    const sel = $("#aiModel");
+    AI_MODELS.forEach((m, i) => sel.append(h("option", {value: String(i)}, m.name)));
+    sel.addEventListener("change", () => { ai.sizeFor = ""; $("#aiSizeTip").textContent = "Check the size first. The download happens once; next time the AI loads from this browser's storage."; aiRender(); });
+    $("#aiSizeBtn").addEventListener("click", aiCheckSize);
+    $("#aiStartBtn").addEventListener("click", aiStart);
+    $("#aiCancelBtn").addEventListener("click", aiCancelDownload);
+    $("#aiDeleteBtn").addEventListener("click", aiDeleteModel);
+    $("#aiUnloadBtn").addEventListener("click", () => { chatNew(); aiUnload(); });
+    $("#chatSend").addEventListener("click", chatSend);
+    $("#chatStop").addEventListener("click", chatStop);
+    $("#chatNew").addEventListener("click", chatNew);
+    $("#chatSuggest").addEventListener("click", chatSuggest);
+    $("#chatIn").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); } });
+    aiRender();
+    aiGpuCheck().then(aiRender);
+  }
+
+
+  /* ---------- start up ---------- */
+
+  function checkBrowser() {
+    const missing = [];
+    if (!(window.crypto && crypto.subtle)) missing.push("secure cryptography (Web Crypto)");
+    if (typeof CompressionStream === "undefined") missing.push("data compression (CompressionStream)");
+    if (typeof HTMLDialogElement === "undefined") missing.push("pop-up windows (dialog)");
+    if (missing.length) {
+      const banner = $("#banner");
+      banner.textContent = "This browser is missing " + missing.join(" and ") +
+        ". Saving and opening glyphs will not work here. Try a recent Chrome, Edge, Firefox or Safari, and open this file directly from your computer.";
+      banner.hidden = false;
+    }
+  }
+
+  setPrivacy("local");
+  buildKeyboard();
+  buildPresets();
+  wireToolbar();
+  wireDialogs();
+  wireDropAnywhere();
+  wireAi();
+  checkBrowser();
+  updateFilenamePreview();
+  updateStrength();
+  loadNodes([], {});
+  markSaved();
+})();
+</script>
+</body>
+</html>
