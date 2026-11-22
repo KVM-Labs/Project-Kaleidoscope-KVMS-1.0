@@ -13,6 +13,7 @@ The live, current page is always `../glyph.html`. Git also keeps every change (t
 | v3 | 2026-11-21 | 3B AI models, Copy/Paste locked text, search metadata | 6a177da to 140f28b |
 | v4 | 2026-11-21 | Picture styles (Golden Spiral, Fibonacci Lattice) | abe90ce to 884efcc |
 | v5 | 2026-11-22 | Day/Night toggle, one smart notes box, woven mandala | ed27d58 |
+| v6 | 2026-11-22 | Simple front page: big paste box, Advanced Controls collapsed | (this change) |
 
 ## Adding a new version
 Copy `glyph.html` to `versions/glyph-vN-YYYY-MM-DD-short-name.html` and add a row above.

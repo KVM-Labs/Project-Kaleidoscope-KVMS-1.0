@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-Fe9vq/Mr36J70jBIRz0DjCmEghirBeAmkq0H3RbIL08=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-GPdoPN7iKukfCxnRMeQRo1D4shfUFRxUOFpmuA0Wids=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph: private AI memory saver by KVM Labs</title>
 <meta name="description" content="Free, offline tool from KVM Labs that locks your AI chat notes into an encrypted picture (a Memory Glyph). Nothing is uploaded. Open it later to resume.">
 <meta name="robots" content="index, follow">
@@ -147,7 +147,7 @@
 
   /* ---------- smart console + scanner beam (Night mode only) ---------- */
   .console{position:relative;overflow:hidden;border-radius:10px;margin-top:6px}
-  .console textarea{display:block;position:relative;min-height:84px;background:var(--input);border-color:var(--accent)}
+  .console textarea{display:block;position:relative;width:100%;min-height:150px;background:var(--input);border:2px solid var(--accent)}
   .console::after{content:"";display:var(--scan-display);position:absolute;inset:0;pointer-events:none;border-radius:10px;
     background:linear-gradient(to bottom,transparent calc(100% - 22px),rgba(var(--scan),.16) calc(100% - 2px),rgba(var(--scan),.95) calc(100% - 2px));
     transform:translate3d(0,-100%,0);will-change:transform;animation:kgscan 3.6s ease-in-out infinite alternate}
@@ -272,24 +272,38 @@
   <noscript><div class="banner">This page needs JavaScript turned on.</div></noscript>
   <p class="status" id="status" aria-live="polite" hidden></p>
 
-  <!-- Empty state: the first thing a new visitor sees -->
-  <section class="card hero" id="empty">
-    <h2>Keep your AI's memory in one locked picture</h2>
-    <p class="hint">Write down the rules and facts you keep repeating to an AI. Lock them with a passkey into a single picture, and open that picture anywhere. Everything happens on this page.</p>
+  <!-- Main console: the first thing everyone sees -->
+  <section class="card hero" id="consoleCard">
+    <h2>Paste what you want your AI to remember</h2>
+    <p class="hint">Every line becomes its own note. Bullets and numbers are cleaned up for you.</p>
+    <div class="console"><textarea id="consoleIn" rows="6" spellcheck="true" placeholder="Paste a chat summary, project notes, or instructions here..." aria-label="Paste what you want your AI to remember"></textarea></div>
     <div class="hero-actions">
-      <button class="primary" id="sampleBtn" type="button">Try Sample Project Glyph</button>
+      <button class="primary" id="addBtn" type="button">Add to memory</button>
       <button class="ghost" id="loadBtn2" type="button">Load Glyph</button>
-      <button class="ghost" id="blankBtn" type="button">Start with a blank note</button>
+      <button class="ghost" id="sampleBtn" type="button">Try Sample Project Glyph</button>
     </div>
-    <ol class="steps">
-      <li><b>Add notes.</b> One rule or fact each. Star the important ones.</li>
+    <p class="hint" id="consoleHint">Press Enter to add. Shift+Enter makes a new line.</p>
+    <ol class="steps" id="empty">
+      <li><b>Paste</b> your notes above.</li>
       <li><b>Save Glyph.</b> Pick a passkey. You get a picture file.</li>
-      <li><b>Load Glyph.</b> Drop the file anywhere on this page to come back.</li>
+      <li><b>Load Glyph</b> (drop the file on this page) and <b>Copy prompt</b> to use it with any AI.</li>
     </ol>
   </section>
 
+  <!-- Ready to copy: the only thing most people need after pasting -->
+  <div id="workspace" hidden style="margin-bottom:18px">
+    <section class="card" id="readyCard">
+      <h2>Ready for your AI</h2>
+      <p class="hint">Auto-Tune sends the most important notes first and keeps the prompt short.</p>
+      <p class="simple-stat" id="simpleStat" aria-live="polite"></p>
+      <div class="tools"><button class="primary" id="copyBtn" type="button">Copy prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
+      <p class="tip">Paste it at the start of a chat with any AI. When you paste into a cloud AI, that company can read it.</p>
+      <div class="tools" style="margin-top:14px"><button class="ghost" id="advBtn2" type="button" aria-expanded="false" aria-controls="advPanel"><span id="advBtn2Label">&#9881; Advanced Controls (Musical Key, Token Limit &amp; Rule Editor)</span></button></div>
+    </section>
+  </div>
+
   <!-- Advanced drawer (closed by default) -->
-  <section id="advPanel" hidden>
+  <section id="advPanel" hidden aria-label="Advanced controls">
     <div class="card" id="keyCard">
       <h2>Musical key</h2>
       <p class="hint">Each note is a kind of rule. Click a key to switch it on or off, pick a musical key, or type a name under a key to relabel it.</p>
@@ -311,26 +325,14 @@
       <div class="meter" id="meter"><div></div></div>
       <textarea id="prompt" readonly aria-label="Prompt" spellcheck="false"></textarea>
     </div>
-  </section>
 
-  <!-- Workspace: notes + ready-to-copy prompt -->
-  <div class="cols" id="workspace" hidden>
-    <section class="card" id="notesCard">
-      <h2>Your notes</h2>
+    <div class="card" id="notesCard">
+      <h2>Rule editor</h2>
       <p class="project" id="projectTitle" hidden></p>
-      <p class="hint">One rule or fact per note. Star the ones that matter most.</p>
+      <p class="hint">One rule or fact per note. Star the ones that matter most, or edit and delete them here.</p>
       <div id="nodes"></div>
-      <div class="console"><textarea id="consoleIn" rows="3" spellcheck="true" placeholder="Paste a chat summary or type a rule and press Enter..." aria-label="Add notes: paste a chat summary or type a rule, then press Enter"></textarea></div>
-      <div class="tools"><button class="ghost" id="addBtn" type="button">Add</button><span class="tok" style="align-self:center">Enter adds each line as a note. Shift+Enter makes a new line.</span></div>
-    </section>
-    <section class="card" id="readyCard">
-      <h2>Ready for your AI</h2>
-      <p class="hint">Auto-Tune sends the most important notes first and keeps the prompt short.</p>
-      <p class="simple-stat" id="simpleStat" aria-live="polite"></p>
-      <div class="tools"><button class="primary" id="copyBtn" type="button">Copy prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
-      <p class="tip">Paste it at the start of a chat with any AI. When you paste into a cloud AI, that company can read it.</p>
-    </section>
-  </div>
+    </div>
+  </section>
 
   <!-- Private AI chat: an AI that runs inside this browser (WebGPU) -->
   <section class="card" id="aiCard" aria-labelledby="aiHead" hidden>
@@ -1313,7 +1315,7 @@ function planArt(fp, size) {
 
     // simple summary
     let line;
-    if (!total) line = "Add a note to get started.";
+    if (!total) line = "Paste some notes above to get started.";
     else {
       line = "Your AI will get <b>" + s.loaded + " of " + total + "</b> notes (about " + s.tokens_used + " tokens).";
       if (s.cut_by_budget || s.skipped_by_key) line += " The most important notes go first. Open Advanced to change this.";
@@ -1426,6 +1428,8 @@ function planArt(fp, size) {
     document.body.classList.toggle("adv", on);
     $("#advPanel").hidden = !on;
     $("#advBtn").setAttribute("aria-expanded", String(on));
+    $("#advBtn2").setAttribute("aria-expanded", String(on));
+    $("#advBtn2Label").innerHTML = (on ? "&#9881; Hide Advanced Controls" : "&#9881; Advanced Controls (Musical Key, Token Limit &amp; Rule Editor)");
     if (on) refresh();
   }
 
@@ -1440,11 +1444,6 @@ function planArt(fp, size) {
     renderNotes();
     refresh();
     return lines.length;
-  }
-  function startBlank() {
-    state.started = true;
-    refresh();
-    $("#consoleIn").focus();
   }
   function wireConsole() {
     const box = $("#consoleIn");
@@ -1492,6 +1491,7 @@ function planArt(fp, size) {
 
   function wireToolbar() {
     $("#advBtn").addEventListener("click", () => setAdvanced(!document.body.classList.contains("adv")));
+    $("#advBtn2").addEventListener("click", () => setAdvanced(!document.body.classList.contains("adv")));
     $("#allBtn").addEventListener("click", () => { state.active = new Set(NOTES); state.keyChoice = "all"; refresh(); });
     $("#noneBtn").addEventListener("click", () => { state.active = new Set(); state.keyChoice = "custom"; refresh(); });
     $("#limitOn").addEventListener("change", e => { state.limit = e.target.checked; refresh(); });
@@ -1500,7 +1500,6 @@ function planArt(fp, size) {
 
     wireConsole();
     wireTheme();
-    $("#blankBtn").addEventListener("click", startBlank);
     $("#sampleBtn").addEventListener("click", () => {
       state.started = true;
       state.title = EXAMPLE.title;
