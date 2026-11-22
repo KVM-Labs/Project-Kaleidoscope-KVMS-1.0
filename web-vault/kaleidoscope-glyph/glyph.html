@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-QG/SrJFWIgStxXiAcO5GZ2AxzAOY3Lvcuvh0hCTmjCE=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-SoB9fj99/EcwLarwt5CBUrYKSe+X76pcnveUoVC8BQw=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph: private AI memory saver by KVM Labs</title>
 <meta name="description" content="Free, offline tool from KVM Labs that locks your AI chat notes into an encrypted picture (a Memory Glyph). Nothing is uploaded. Open it later to resume.">
 <meta name="robots" content="index, follow">
@@ -171,7 +171,7 @@
   .progress{height:6px;border-radius:99px;background:var(--input);border:1px solid var(--border);overflow:hidden;margin-top:10px;visibility:hidden}
   .progress.on{visibility:visible}
   .progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-  .drop{display:block;border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;margin-bottom:10px;word-break:break-all}
+  .drop{display:block;border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;margin-bottom:10px;overflow-wrap:anywhere}
   .drop.over,.drop:hover{border-color:var(--accent);color:var(--text)}
   .preview{border-radius:50%;width:100%;max-width:230px;aspect-ratio:1;object-fit:cover;background:var(--input);border:1px solid var(--border);display:block}
   .gid{margin-top:8px;font-size:14px;color:var(--muted);word-break:break-all}
@@ -208,6 +208,7 @@
   .status{margin:8px 0 0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);font-size:14px}
   .status.ok{color:var(--good);border-color:var(--ok-line)}
   .status.err{color:var(--bad);border-color:var(--bad)}
+  .tagline{margin:14px 0 0;font-size:17px;color:var(--muted)}
   .hero{text-align:left;padding:26px 22px;margin-top:18px}
   .hero h2{font-size:24px;margin-bottom:8px}
   .hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
@@ -260,11 +261,11 @@
     <h1>Kaleidoscope <span>Glyph</span></h1>
     <div class="actions">
       <span class="pill warn" id="quickBadge" hidden>Quick re-save on</span>
-      <button class="ghost" id="loadBtn" type="button">Load Glyph</button>
-      <button class="primary" id="saveOpenBtn" type="button">Save Glyph</button>
-      <button class="ghost" id="advBtn" type="button" aria-expanded="false" aria-controls="advPanel">&#9881; Advanced</button>
-      <button class="ghost" id="clearSessionBtn" type="button">Clear Session</button>
-      <button class="ghost themebtn" id="themeBtn" type="button" aria-label="Switch to day mode"><span id="themeLabel">&#9728; Day</span></button>
+      <button class="ghost" id="loadBtn" type="button" title="Open a picture file you saved before, using its passkey, to get your notes back.">Load Glyph</button>
+      <button class="primary" id="saveOpenBtn" type="button" title="Lock your notes with a passkey of your choice and save them as a picture file. Only you can open it.">Save Glyph</button>
+      <button class="ghost" id="advBtn" type="button" title="Show or hide the extra controls: Musical Key, size limit, prompt preview and the note editor." aria-expanded="false" aria-controls="advPanel">&#9881; Advanced</button>
+      <button class="ghost" id="clearSessionBtn" type="button" title="Remove everything from this page, including any remembered passkey. Picture files you already saved are not touched.">Clear Session</button>
+      <button class="ghost themebtn" id="themeBtn" type="button" title="Switch between the light and dark look. Remembered on this device." aria-label="Switch to day mode"><span id="themeLabel">&#9728; Day</span></button>
     </div>
     <span class="pill" id="privacyPill"><span class="dot" aria-hidden="true"></span><span id="privacyText"></span></span>
   </header>
@@ -273,22 +274,26 @@
   <p class="status" id="status" aria-live="polite" hidden></p>
 
   <!-- Main console: the first thing everyone sees -->
+  <p class="tagline">Lock your AI chat memory into a picture only you can open. Everything stays on your device.</p>
   <section class="card hero" id="consoleCard">
     <h2>Paste what you want your AI to remember</h2>
     <p class="hint">Every line becomes its own note. Bullets and numbers are cleaned up for you.</p>
     <div class="console"><textarea id="consoleIn" rows="6" spellcheck="true" placeholder="Paste a chat summary, project notes, or instructions here..." aria-label="Paste what you want your AI to remember"></textarea></div>
     <div class="hero-actions">
-      <button class="primary" id="addBtn" type="button">Add to memory</button>
-      <button class="ghost" id="loadBtn2" type="button">Load Glyph</button>
-      <button class="ghost" id="sampleBtn" type="button">Try Sample Project Glyph</button>
-      <button class="ghost wrapBtn" type="button" title="Paste this at the end of a chat to get the notes worth saving">Copy wrap-up prompt</button>
+      <button class="primary" id="saveBtn2" type="button" title="Lock your notes with a passkey of your choice and save them as a picture file. Only you can open it.">Save Glyph</button>
+      <button class="ghost" id="addBtn" type="button" title="Turn what you pasted into notes. Pressing Enter does the same.">Add notes</button>
+    </div>
+    <p class="hint" id="consoleHint">Press Enter to add. Shift+Enter makes a new line.</p>
+    <div class="hero-actions">
+      <button class="ghost" id="loadBtn2" type="button" title="Open a picture file you saved before, using its passkey, to get your notes back.">Load Glyph</button>
+      <button class="ghost" id="sampleBtn" type="button" title="Fill the page with example notes so you can see how it works. Nothing is saved.">Try Sample Project Glyph</button>
+      <button class="ghost wrapBtn" type="button" title="Copies a request you paste into any AI at the end of a chat. It asks the AI to list the rules worth saving. Then paste its answer into the box above.">Copy wrap-up prompt</button>
     </div>
     <p class="hint"><b>Ending a chat?</b> Click Copy wrap-up prompt, paste it into that AI (any model, any tab), then paste its answer into the box above.</p>
-    <p class="hint" id="consoleHint">Press Enter to add. Shift+Enter makes a new line.</p>
     <ol class="steps" id="empty">
-      <li><b>Paste</b> your notes above.</li>
-      <li><b>Save Glyph.</b> Pick a passkey. You get a picture file.</li>
-      <li><b>Load Glyph</b> (drop the file on this page) and <b>Copy prompt</b> to use it with any AI.</li>
+      <li><b>Paste</b> your notes in the box above.</li>
+      <li><b>Save Glyph</b> and choose a passkey. You get a picture file.</li>
+      <li>Later: <b>Load Glyph</b>, pick the picture, then <b>Copy prompt</b> and paste it into any AI.</li>
     </ol>
   </section>
 
@@ -298,9 +303,9 @@
       <h2>Ready for your AI</h2>
       <p class="hint">Auto-Tune sends the most important notes first and keeps the prompt short.</p>
       <p class="simple-stat" id="simpleStat" aria-live="polite"></p>
-      <div class="tools"><button class="primary" id="copyBtn" type="button">Copy prompt</button><button class="ghost wrapBtn" type="button" style="padding:6px 12px;font-size:14px" title="Paste this at the end of a chat to get the notes worth saving">Copy wrap-up prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
+      <div class="tools"><button class="primary" id="copyBtn" type="button" title="Copy your notes as text to paste at the start of a chat with any AI.">Copy prompt</button><button class="ghost wrapBtn" type="button" style="padding:6px 12px;font-size:14px" title="Paste this at the end of a chat to get the notes worth saving">Copy wrap-up prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
       <p class="tip">Paste it at the start of a chat with any AI. When you paste into a cloud AI, that company can read it.</p>
-      <div class="tools" style="margin-top:14px"><button class="ghost" id="advBtn2" type="button" aria-expanded="false" aria-controls="advPanel"><span id="advBtn2Label">&#9881; Advanced Controls (Musical Key, Token Limit &amp; Rule Editor)</span></button></div>
+      <div class="tools" style="margin-top:14px"><button class="ghost" id="advBtn2" type="button" title="Show or hide the extra controls: Musical Key, size limit, prompt preview and the note editor." aria-expanded="false" aria-controls="advPanel"><span id="advBtn2Label">&#9881; Advanced Controls (Musical Key, Token Limit &amp; Rule Editor)</span></button></div>
     </section>
   </div>
 
@@ -1860,7 +1865,9 @@ function planArt(fp, size) {
   }
 
   function wireDialogs() {
-    $("#saveOpenBtn").addEventListener("click", openSave);
+    const saveFlow = () => { const bx = $("#consoleIn"); if (bx.value.trim()) { ingestNotes(bx.value); bx.value = ""; } openSave(); };
+    $("#saveOpenBtn").addEventListener("click", saveFlow);
+    $("#saveBtn2").addEventListener("click", saveFlow);
     $("#loadBtn").addEventListener("click", () => openLoad(null));
     $("#loadBtn2").addEventListener("click", () => openLoad(null));
     $("#saveBtn").addEventListener("click", () => doSave(false));
@@ -1977,8 +1984,9 @@ function planArt(fp, size) {
 
   function aiRender() {
     const ok = ai.gpu && ai.gpu.ok;
-    $("#aiGpuMsg").textContent = ai.gpu ? (ok ? "" : ai.gpu.why) : "Checking whether this browser can run the AI...";
-    $("#aiGpuMsg").className = "msg" + (ai.gpu && !ok ? " err" : "");
+    $("#aiGpuMsg").textContent = ai.gpu ? (ok ? "" : "Optional feature, not available on this device. " + ai.gpu.why) : "Checking whether this browser can run the AI...";
+    $("#aiGpuMsg").className = "msg";
+    $("#aiGpuMsg").style.color = ai.gpu && !ok ? "var(--muted)" : "";
     $("#aiSetup").hidden = !ok || ai.phase === "ready";
     $("#aiChat").hidden = !(ok && ai.phase === "ready");
     const loading = ai.phase === "loading";
