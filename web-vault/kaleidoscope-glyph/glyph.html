@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-Ua+bjLzfR5rUFvTGpeJuI8AwbLbtpUZzPXPLEhij4Cs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-3XRGRNZpUUUS969vo9BywM2af60EmKZxd9LM+jAxxKI=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph: private AI memory saver by KVM Labs</title>
 <meta name="description" content="Free, offline tool from KVM Labs that locks your AI chat notes into an encrypted picture (a Memory Glyph). Nothing is uploaded. Open it later to resume.">
 <meta name="robots" content="index, follow">
@@ -1509,20 +1509,27 @@ function planArt(fp, size) {
         g.beginPath(); g.arc(c + r * Math.cos(a), c + r * Math.sin(a), 2.5 + 8 * n / N, 0, Math.PI * 2); g.fill();
       }
     } else {
-      const sym = 5 + (fp[1] % 4), steps = 9, turn = (fp[2] / 255) * Math.PI * 2;   // 5- to 8-fold symmetry
-      const ring = (k) => { const r = maxR / Math.pow(PHI, k), o = k * GA / 3 + turn; return Array.from({length: sym}, (_, j) => [c + r * Math.cos(o + j * 2 * Math.PI / sym), c + r * Math.sin(o + j * 2 * Math.PI / sym)]); };
-      g.lineWidth = 1.6;
-      for (let k = 0; k < steps; k++) {
-        const A = ring(k), B = ring(k + 1);
-        g.strokeStyle = "hsla(" + hue(k).toFixed(1) + ",80%,62%,0.85)";
+      const sym = [6, 8, 10][fp[1] % 3], steps = 9, TAU = Math.PI * 2, turn = (fp[2] / 255) * TAU;   // 6-, 8- or 10-fold symmetry
+      g.globalCompositeOperation = "lighter";                          // overlapping light adds up
+      g.lineWidth = 1;
+      for (let k = 0; k < steps; k++) {                                // concentric rings, radius maxR / PHI^k
+        g.strokeStyle = "hsla(" + hue(k).toFixed(1) + ",70%,55%,0.45)";
+        g.beginPath(); g.arc(c, c, maxR / Math.pow(PHI, k), 0, TAU); g.stroke();
+      }
+      g.lineWidth = 1.3;
+      for (let i = 0; i < 55; i++) {                                   // 55 chords, each repeated around the centre
+        const ra = maxR / Math.pow(PHI, fp[i % 32] % steps), rb = maxR / Math.pow(PHI, (fp[(i + 7) % 32] + i) % steps);
+        const a1 = i * GA + turn, a2 = a1 + (1 + fp[(i + 13) % 32] % (sym - 1)) * TAU / sym;
+        g.strokeStyle = "hsla(" + hue(i).toFixed(1) + ",85%,58%,0.32)";
         g.beginPath();
         for (let j = 0; j < sym; j++) {
-          g.moveTo(A[j][0], A[j][1]); g.lineTo(A[(j + 1) % sym][0], A[(j + 1) % sym][1]);   // ring
-          g.moveTo(A[j][0], A[j][1]); g.lineTo(B[j][0], B[j][1]);                           // spoke
-          g.moveTo(A[j][0], A[j][1]); g.lineTo(B[(j + 2) % sym][0], B[(j + 2) % sym][1]);   // cross web
+          const o = j * TAU / sym;
+          g.moveTo(c + ra * Math.cos(a1 + o), c + ra * Math.sin(a1 + o));
+          g.lineTo(c + rb * Math.cos(a2 + o), c + rb * Math.sin(a2 + o));
         }
         g.stroke();
       }
+      g.globalCompositeOperation = "source-over";
     }
     g.restore();
     return canvas;
