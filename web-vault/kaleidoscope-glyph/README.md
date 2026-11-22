@@ -19,6 +19,9 @@ What the security policy allows for this (and nothing else): the AI software fro
 ## Important to know
 - **Messaging apps can strip the hidden data.** WhatsApp, iMessage and screenshots re-save pictures and drop the locked data. After saving, press **Copy locked text** and keep that text as a backup. In Load Glyph, open "Paste locked text instead" to unlock from it. The text runs from `---BEGIN KALEIDOSCOPE GLYPH---` to `---END KALEIDOSCOPE GLYPH---` and is the same locked data, so it is just as private: it needs the passkey. A cut-off copy is refused with a clear message.
 - **Picture styles.** In Save Glyph you can pick Classic Kaleidoscope, Golden Spiral or Fibonacci Lattice to tell your glyphs apart by sight. The choice is stored inside the locked data (so only you know what each style means) and is restored when you unlock, including for Quick Re-Save. glyph.py can open these glyphs but drops the style if it re-saves them.
+- **Day / Night mode.** The ☀ Day / 🌙 Night button (top right) switches the look. First visit follows your device setting; your choice is remembered on this device only.
+- **One box for notes.** Paste a chat summary or type a rule and press Enter: each line becomes its own note (bullets and numbering are removed). Shift+Enter adds a new line.
+- **Fibonacci Lattice** is now a woven mandala with 12- or 16-fold symmetry drawn from the glyph's fingerprint.
 - **No passkey recovery.** Lose the passkey and the notes are gone. A 4-word passphrase is suggested.
 - **Re-saving the PNG can erase the notes** (resize, screenshot, JPEG/WebP, many chat apps). Keep the original file.
 - **The glyph is not smaller than your data.** The PNG is about 300 KB; the saving comes from sending short distilled notes to an AI instead of the whole chat.
