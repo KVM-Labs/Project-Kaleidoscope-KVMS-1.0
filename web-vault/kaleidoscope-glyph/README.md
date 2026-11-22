@@ -23,6 +23,7 @@ What the security policy allows for this (and nothing else): the AI software fro
 - **Picture styles.** In Save Glyph you can pick Classic Kaleidoscope, Golden Spiral or Fibonacci Lattice to tell your glyphs apart by sight. The choice is stored inside the locked data (so only you know what each style means) and is restored when you unlock, including for Quick Re-Save. glyph.py can open these glyphs but drops the style if it re-saves them.
 - **Day / Night mode.** The ☀ Day / 🌙 Night button (top right) switches the look. First visit follows your device setting; your choice is remembered on this device only.
 - **One box for notes.** Paste a chat summary or type a rule and press Enter: each line becomes its own note (bullets and numbering are removed). Shift+Enter adds a new line.
+- **Simple front page.** The big box at the top is all most people need: paste, then Save Glyph, or Load Glyph, then Copy prompt. Musical Key, the size limit, the prompt preview and the rule editor live under ⚙ Advanced Controls (closed by default).
 - **Fibonacci Lattice** is now a woven mandala with 12- or 16-fold symmetry drawn from the glyph's fingerprint.
 - **No passkey recovery.** Lose the passkey and the notes are gone. A 4-word passphrase is suggested.
 - **Re-saving the PNG can erase the notes** (resize, screenshot, JPEG/WebP, many chat apps). Keep the original file.
