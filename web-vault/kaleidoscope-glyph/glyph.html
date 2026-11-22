@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-MruRq5/bNp0E27NgDuPLBEJhLBLKdoMCMzjyfmJQsOc=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-QG/SrJFWIgStxXiAcO5GZ2AxzAOY3Lvcuvh0hCTmjCE=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph: private AI memory saver by KVM Labs</title>
 <meta name="description" content="Free, offline tool from KVM Labs that locks your AI chat notes into an encrypted picture (a Memory Glyph). Nothing is uploaded. Open it later to resume.">
 <meta name="robots" content="index, follow">
@@ -281,7 +281,9 @@
       <button class="primary" id="addBtn" type="button">Add to memory</button>
       <button class="ghost" id="loadBtn2" type="button">Load Glyph</button>
       <button class="ghost" id="sampleBtn" type="button">Try Sample Project Glyph</button>
+      <button class="ghost wrapBtn" type="button" title="Paste this at the end of a chat to get the notes worth saving">Copy wrap-up prompt</button>
     </div>
+    <p class="hint"><b>Ending a chat?</b> Click Copy wrap-up prompt, paste it into that AI (any model, any tab), then paste its answer into the box above.</p>
     <p class="hint" id="consoleHint">Press Enter to add. Shift+Enter makes a new line.</p>
     <ol class="steps" id="empty">
       <li><b>Paste</b> your notes above.</li>
@@ -296,7 +298,7 @@
       <h2>Ready for your AI</h2>
       <p class="hint">Auto-Tune sends the most important notes first and keeps the prompt short.</p>
       <p class="simple-stat" id="simpleStat" aria-live="polite"></p>
-      <div class="tools"><button class="primary" id="copyBtn" type="button">Copy prompt</button><button class="ghost" id="wrapBtn" type="button" style="padding:6px 12px;font-size:14px" title="Paste this at the end of a chat to get the notes worth saving">Copy wrap-up prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
+      <div class="tools"><button class="primary" id="copyBtn" type="button">Copy prompt</button><button class="ghost wrapBtn" type="button" style="padding:6px 12px;font-size:14px" title="Paste this at the end of a chat to get the notes worth saving">Copy wrap-up prompt</button><span id="copyMsg" class="msg ok" style="margin:0;align-self:center"></span></div>
       <p class="tip">Paste it at the start of a chat with any AI. When you paste into a cloud AI, that company can read it.</p>
       <div class="tools" style="margin-top:14px"><button class="ghost" id="advBtn2" type="button" aria-expanded="false" aria-controls="advPanel"><span id="advBtn2Label">&#9881; Advanced Controls (Musical Key, Token Limit &amp; Rule Editor)</span></button></div>
     </section>
@@ -1508,11 +1510,11 @@ function planArt(fp, size) {
       setStatus("Sample project loaded. Edit anything, then press Save Glyph to lock it into a picture.", "ok");
     });
 
-    $("#wrapBtn").addEventListener("click", async () => {
-      const b = $("#wrapBtn"), old = b.textContent;
+    document.querySelectorAll(".wrapBtn").forEach(b => b.addEventListener("click", async () => {
+      const old = b.textContent;
       if (await copyToClipboard("Summarize the key decisions, facts, and updated rules from this conversation as a bulleted list of standalone, one-line statements (under 20 words each). Exclude greetings, fluff, and temporary debugging steps\u2014output only rules worth saving for our next session.")) b.textContent = "Copied!";
       setTimeout(() => { b.textContent = old; }, 2000);
-    });
+    }));
     $("#copyBtn").addEventListener("click", async () => {
       const ok = await copyToClipboard($("#prompt").value);
       const msg = $("#copyMsg");
