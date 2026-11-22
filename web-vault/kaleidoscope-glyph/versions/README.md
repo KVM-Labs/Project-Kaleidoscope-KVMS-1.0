@@ -15,7 +15,8 @@ The live, current page is always `../glyph.html`. Git also keeps every change (t
 | v5 | 2026-11-22 | Day/Night toggle, one smart notes box, woven mandala | <a href="https://kvm-labs.github.io/vault3/versions/glyph-v5-2026-11-22-day-night-console-mandala.html"><img src="open-in-browser.svg" alt="Open v5 in browser" height="28"></a> |
 | v6 | 2026-11-22 | Simple front page: big paste box, Advanced Controls collapsed (current) | <a href="https://kvm-labs.github.io/vault3/versions/glyph-v6-2026-11-22-simple-console.html"><img src="open-in-browser.svg" alt="Open v6 in browser" height="28"></a> |
 | v7 | 2026-11-22 | Copy wrap-up prompt button | PR #8 |
-| v8 | 2026-11-22 | Wrap-up button also on the front page, with a how-to line | (this change) |
+| v8 | 2026-11-22 | Wrap-up button also on the front page, with a how-to line | PR #9 |
+| v9 | 2026-11-22 | Friendlier front page: Save Glyph next to the paste box, tagline, hover tooltips, calmer AI note | (this change) |
 
 All versions on one page: https://kvm-labs.github.io/vault3/versions/
 
