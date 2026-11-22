@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+dfMZ9i8K+gwsG3kAoL81ZL2sGKztC3NiQNdIIKRZFU=' 'sha256-joWTuFoXJJ8mih4Z4w/Ra0bYh/mQ4tE65FOGZcX3m9M=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RivEbV/40auFMTA+YhNAPdkgsfHzLC6C/3p03bHpGMo=' 'sha256-Ua+bjLzfR5rUFvTGpeJuI8AwbLbtpUZzPXPLEhij4Cs=' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/npm/; style-src 'unsafe-inline'; img-src blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <title>Kaleidoscope Glyph: private AI memory saver by KVM Labs</title>
 <meta name="description" content="Free, offline tool from KVM Labs that locks your AI chat notes into an encrypted picture (a Memory Glyph). Nothing is uploaded. Open it later to resume.">
 <meta name="robots" content="index, follow">
@@ -346,6 +346,12 @@
   <div class="dlg-body">
     <div id="saveForm">
       <div class="field"><label for="saveTitle">Title (locked inside the glyph, shown only after unlocking)</label><input type="text" id="saveTitle" maxlength="80" placeholder="e.g. Kaleidoscope project rules" autocomplete="off"></div>
+      <div class="field"><label for="glyphArtStyle">Picture style (stored inside the lock, so only you know which style is which)</label>
+        <select id="glyphArtStyle">
+          <option value="kaleidoscope">Classic Kaleidoscope (Default)</option>
+          <option value="golden-spiral">Golden Spiral (Phyllotaxis &phi;)</option>
+          <option value="fibonacci-lattice">Fibonacci Lattice (Sacred Geometry)</option>
+        </select></div>
       <div class="fname" id="fnamePreview" aria-label="File name preview"></div>
       <div id="passFields">
         <div class="field"><label for="savePw">Passkey</label><input type="password" id="savePw" autocomplete="new-password"></div>
@@ -368,9 +374,9 @@
     <div id="saveResult" hidden>
       <img class="preview" id="preview" alt="Your new glyph" hidden>
       <div class="gid" id="gid"></div>
-      <a class="dl" id="dlLink" hidden>Download again</a>
+      <div class="rowbtns"><a class="dl" id="dlLink" hidden>Download again</a><button class="ghost" id="copyLockedBtn" type="button">Copy locked text</button><span id="copyLockedMsg" class="msg ok" style="margin:0"></span></div>
       <p class="hint" style="margin-top:12px">Some apps (WhatsApp, iMessage, screenshots) strip the hidden data from pictures. As a backup, copy the locked text and keep it somewhere safe. It is just as private as the picture: it cannot be opened without your passkey.</p>
-      <div class="rowbtns"><button class="ghost" id="copyLockedBtn" type="button">Copy locked text</button><span id="copyLockedMsg" class="msg ok" style="margin:0"></span></div>
+
       <div class="rowbtns" style="margin-top:12px"><button class="primary" id="saveDone" type="button">Done</button></div>
     </div>
   </div>
@@ -383,8 +389,8 @@
     <label class="drop" id="drop" for="fileIn"><span id="dropText">Drop a glyph PNG here, or click to choose</span></label>
     <input type="file" id="fileIn" accept="image/png,.png" hidden>
     <img class="preview" id="loadPreview" alt="Chosen glyph" hidden>
-    <details id="pasteBox" style="margin:10px 0"><summary>Picture lost its hidden data? Paste locked text instead</summary>
-      <textarea id="pasteIn" rows="3" spellcheck="false" placeholder="Paste the locked text that starts with KVMS1:" aria-label="Locked text" style="margin-top:8px"></textarea>
+    <details id="pasteBox" style="margin:10px 0"><summary>Paste locked text instead</summary>
+      <textarea id="pasteIn" rows="4" spellcheck="false" placeholder="Paste the locked text (from ---BEGIN KALEIDOSCOPE GLYPH--- to ---END KALEIDOSCOPE GLYPH---)" aria-label="Locked text" style="margin-top:8px"></textarea>
     </details>
     <div class="field"><label for="openPw">Passkey</label><input type="password" id="openPw" autocomplete="current-password"></div>
     <label class="check"><input type="checkbox" id="keepPass2"> Keep unlocked for quick re-save until I press Clear Session (or 15 minutes of inactivity)</label>
@@ -511,14 +517,20 @@ function cleanTitle(title) {
   return cut || "Untitled";
 }
 
-function buildSession(nodes, labels, title) {
-  return {
+const ART_STYLES = ["kaleidoscope", "golden-spiral", "fibonacci-lattice"];
+function cleanArtStyle(v) { return ART_STYLES.includes(v) ? v : "kaleidoscope"; }
+
+function buildSession(nodes, labels, title, artStyle) {
+  const session = {
     version: 2,
     title: cleanTitle(title),
     saved_at: Math.floor(Date.now() / 1000),
     labels: cleanLabels(labels),
     nodes: nodes.map(cleanNode),
   };
+  // Only written when not the default, so old tools and old files stay identical.
+  if (cleanArtStyle(artStyle) !== "kaleidoscope") session.art_style = cleanArtStyle(artStyle);
+  return session;
 }
 
 /* Same rules as glyph.py make_prompt:
@@ -942,12 +954,20 @@ function extractPayload(png) {
 }
 
 /* ---------- locked text: the same locked data as plain text, for apps that strip the hidden PNG data ---------- */
-const TEXT_PREFIX = "KVMS1";
-function lockedTextFor(payload, id) { return TEXT_PREFIX + ":" + id + ":" + b64encode(payload); }
+const TEXT_BEGIN = "---BEGIN KALEIDOSCOPE GLYPH---", TEXT_END = "---END KALEIDOSCOPE GLYPH---";
+function lockedTextFor(payload, id) {
+  const lines = b64encode(payload).match(/.{1,64}/g) || [];
+  return [TEXT_BEGIN, "ID: " + id].concat(lines, [TEXT_END]).join("\n");
+}
 async function payloadFromText(text) {
-  const clean = String(text).replace(/\s+/g, "");
-  const m = /^KVMS1:([0-9a-f]{8}):([A-Za-z0-9+\/]+={0,2})$/i.exec(clean);
-  if (!m) throw new Error("This text does not look like locked glyph text. It should start with " + TEXT_PREFIX + ": and be one long run of letters and numbers.");
+  const t = String(text);
+  const begin = /-{2,}\s*BEGIN KALEIDOSCOPE GLYPH\s*-{2,}/i.exec(t);
+  if (!begin) throw new Error("This text does not look like locked glyph text. It should start with " + TEXT_BEGIN);
+  const rest = t.slice(begin.index + begin[0].length);
+  const end = /-{2,}\s*END KALEIDOSCOPE GLYPH\s*-{2,}/i.exec(rest);
+  if (!end) throw new Error("The text is cut off: the " + TEXT_END + " line is missing. Copy the whole text again from the original.");
+  const m = /^ID:([0-9a-f]{8})([A-Za-z0-9+\/]+={0,2})$/i.exec(rest.slice(0, end.index).replace(/\s+/g, ""));
+  if (!m) throw new Error("The locked text is damaged or incomplete. Copy it again from the original.");
   let payload;
   try { payload = b64decode(m[2]); } catch (e) { throw new Error(NOT_GLYPH_MSG); }
   const id = bytesToHex(await sha256(payload)).slice(0, 8);
@@ -1067,6 +1087,7 @@ function planArt(fp, size) {
     nodes: [],                 // {id, note, text, priority}
     labels: {},                // note -> label
     title: "",
+    artStyle: "kaleidoscope",  // picture style, kept inside the locked data
     active: new Set(NOTES),    // notes that are switched on
     keyChoice: "all",
     limit: true,               // Auto-Tune is on by default
@@ -1084,7 +1105,7 @@ function planArt(fp, size) {
 
   /* ---------- unsaved-session guard ---------- */
   function snapshot() {
-    return JSON.stringify([state.nodes.map(n => [n.note, n.text, String(n.priority)]), state.labels, state.title]);
+    return JSON.stringify([state.nodes.map(n => [n.note, n.text, String(n.priority)]), state.labels, state.title, state.artStyle]);
   }
   function hasContent() { return state.nodes.some(n => n.text.trim()); }
   function markSaved() { savedSnapshot = snapshot(); }
@@ -1467,6 +1488,46 @@ function planArt(fp, size) {
     return canvas;
   }
 
+  /* Two extra styles, drawn only from the fingerprint (never from your text or passkey).
+     Golden Angle and Golden Ratio: GA = pi * (3 - sqrt 5), PHI = 1.6180339887. */
+  const PHI = 1.6180339887, GA = Math.PI * (3 - Math.sqrt(5));
+  function renderStyleArt(style, fp, size) {
+    size = size || 768;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const g = canvas.getContext("2d"), c = size / 2, maxR = c * 0.94;
+    g.fillStyle = "rgb(12,10,24)"; g.fillRect(0, 0, size, size);
+    g.save(); g.beginPath(); g.arc(c, c, c - 1, 0, Math.PI * 2); g.clip();
+    g.fillStyle = "rgb(18,15,34)"; g.fillRect(0, 0, size, size);
+    const hue = (k) => ((fp[0] / 255) * 360 + k * (360 / PHI)) % 360;   // hue steps shifted by 360 / PHI
+    if (style === "golden-spiral") {
+      const N = 144 + (fp[1] % 89);                                   // 144 to 232 dots
+      const scale = maxR / Math.sqrt(N), turn = (fp[2] / 255) * Math.PI * 2;
+      for (let n = 1; n <= N; n++) {
+        const a = n * GA + turn, r = scale * Math.sqrt(n);
+        g.fillStyle = "hsla(" + hue(n).toFixed(1) + ",78%," + (48 + 14 * (n % 3)) + "%,0.88)";
+        g.beginPath(); g.arc(c + r * Math.cos(a), c + r * Math.sin(a), 2.5 + 8 * n / N, 0, Math.PI * 2); g.fill();
+      }
+    } else {
+      const sym = 5 + (fp[1] % 4), steps = 9, turn = (fp[2] / 255) * Math.PI * 2;   // 5- to 8-fold symmetry
+      const ring = (k) => { const r = maxR / Math.pow(PHI, k), o = k * GA / 3 + turn; return Array.from({length: sym}, (_, j) => [c + r * Math.cos(o + j * 2 * Math.PI / sym), c + r * Math.sin(o + j * 2 * Math.PI / sym)]); };
+      g.lineWidth = 1.6;
+      for (let k = 0; k < steps; k++) {
+        const A = ring(k), B = ring(k + 1);
+        g.strokeStyle = "hsla(" + hue(k).toFixed(1) + ",80%,62%,0.85)";
+        g.beginPath();
+        for (let j = 0; j < sym; j++) {
+          g.moveTo(A[j][0], A[j][1]); g.lineTo(A[(j + 1) % sym][0], A[(j + 1) % sym][1]);   // ring
+          g.moveTo(A[j][0], A[j][1]); g.lineTo(B[j][0], B[j][1]);                           // spoke
+          g.moveTo(A[j][0], A[j][1]); g.lineTo(B[(j + 2) % sym][0], B[(j + 2) % sym][1]);   // cross web
+        }
+        g.stroke();
+      }
+    }
+    g.restore();
+    return canvas;
+  }
+
   /* The visible label: a dark strip along the bottom with the format, time and ID. */
   function drawLabel(canvas, text) {
     const g = canvas.getContext("2d"), size = canvas.width, strip = 44;
@@ -1524,6 +1585,7 @@ function planArt(fp, size) {
     $("#saveForm").hidden = false;
     $("#saveResult").hidden = true;
     $("#saveTitle").value = state.title;
+    $("#glyphArtStyle").value = state.artStyle;
     for (const id of ["#savePw", "#savePw2"]) $(id).value = "";
     $("#keepPass").checked = false;
     $("#suggestTip").hidden = true;
@@ -1536,11 +1598,12 @@ function planArt(fp, size) {
   async function doSave(quick) {
     setMsg("#saveMsg", "");
     state.title = $("#saveTitle").value;
+    state.artStyle = cleanArtStyle($("#glyphArtStyle").value);
     const pw = quick ? sessionPass : $("#savePw").value;
     if (!pw) return setMsg("#saveMsg", "The passkey cannot be empty.", "err");
     if (!quick && pw !== $("#savePw2").value) return setMsg("#saveMsg", "The two passkeys did not match.", "err");
     let session;
-    try { session = buildSession(state.nodes, state.labels, state.title); }
+    try { session = buildSession(state.nodes, state.labels, state.title, state.artStyle); }
     catch (e) { return setMsg("#saveMsg", e.message, "err"); }
     if (!session.nodes.length) return setMsg("#saveMsg", "Add at least one note first.", "err");
 
@@ -1553,7 +1616,7 @@ function planArt(fp, size) {
       if (payload.length > MAX_PAYLOAD) throw new Error("Too much text for one glyph (limit " + MAX_PAYLOAD.toLocaleString() + " bytes). Trim some notes and try again.");
       const fingerprint = await sha256(payload);
       const id = bytesToHex(fingerprint).slice(0, 8);
-      const canvas = renderArt(planArt(fingerprint));
+      const canvas = session.art_style ? renderStyleArt(session.art_style, fingerprint) : renderArt(planArt(fingerprint));
       drawLabel(canvas, glyphLabel(session, id));
       const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
       const png = new Uint8Array(await pngBlob.arrayBuffer());
@@ -1648,6 +1711,7 @@ function planArt(fp, size) {
       for (const [k, v] of Object.entries(session.labels || {})) labels[normalizeNote(k)] = String(v);
       state.started = true;
       state.title = session.title ? cleanTitle(session.title) : "";
+      state.artStyle = cleanArtStyle(session.art_style);
       loadNodes(nodes, labels);
       markSaved();
       if ($("#keepPass2").checked) rememberPass(pw);
@@ -1671,7 +1735,7 @@ function planArt(fp, size) {
     for (const d of document.querySelectorAll("dialog")) if (d.open) d.close();
     forgetPass();
     aiReset();
-    state.title = ""; state.started = false;
+    state.title = ""; state.artStyle = "kaleidoscope"; state.started = false;
     state.limit = true; state.budget = AUTO_BUDGET;
     loadNodes([], {});
     for (const id of ["#saveTitle", "#savePw", "#savePw2", "#openPw", "#pasteIn"]) $(id).value = "";
@@ -1698,7 +1762,7 @@ function planArt(fp, size) {
     $("#openBtn").addEventListener("click", doOpen);
     $("#copyLockedBtn").addEventListener("click", async () => {
       if (!lockedText) return;
-      $("#copyLockedMsg").textContent = (await copyToClipboard(lockedText)) ? "Copied" : "Could not copy. Press Download again and keep the picture.";
+      $("#copyLockedMsg").textContent = (await copyToClipboard(lockedText)) ? "Copied!" : "Could not copy. Press Download again and keep the picture.";
     });
     $("#openPw").addEventListener("keydown", e => { if (e.key === "Enter") doOpen(); });
     $("#savePw2").addEventListener("keydown", e => { if (e.key === "Enter") doSave(false); });
