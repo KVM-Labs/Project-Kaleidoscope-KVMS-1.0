@@ -14,6 +14,7 @@ The live, current page is always `../glyph.html`. Git also keeps every change (t
 | v4 | 2026-11-21 | Picture styles (Golden Spiral, Fibonacci Lattice) | <a href="https://kvm-labs.github.io/vault3/versions/glyph-v4-2026-11-21-picture-styles.html"><img src="open-in-browser.svg" alt="Open v4 in browser" height="28"></a> |
 | v5 | 2026-11-22 | Day/Night toggle, one smart notes box, woven mandala | <a href="https://kvm-labs.github.io/vault3/versions/glyph-v5-2026-11-22-day-night-console-mandala.html"><img src="open-in-browser.svg" alt="Open v5 in browser" height="28"></a> |
 | v6 | 2026-11-22 | Simple front page: big paste box, Advanced Controls collapsed (current) | <a href="https://kvm-labs.github.io/vault3/versions/glyph-v6-2026-11-22-simple-console.html"><img src="open-in-browser.svg" alt="Open v6 in browser" height="28"></a> |
+| v7 | 2026-11-22 | Copy wrap-up prompt button | (this change) |
 
 All versions on one page: https://kvm-labs.github.io/vault3/versions/
 
