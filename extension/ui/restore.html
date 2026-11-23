@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Import Memory Glyph · Kaleidoscope</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0c0c0e; --surface:#16161a; --border:#2d2d34; --text:#f4f4f7; --muted:#a1a1aa; --accent:#3b82f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+    main { max-width: 760px; margin: auto; }
+    h1 { font-size: 1.5rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin: 16px 0; }
+    label { display: block; margin: 12px 0 6px; font-weight: 600; }
+    input, textarea, button { font: inherit; }
+    input[type=file], input[type=password], textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+    textarea { min-height: 190px; resize: vertical; white-space: pre-wrap; }
+    button { border: 0; border-radius: 6px; padding: 10px 14px; margin: 12px 8px 0 0; background: var(--accent); color: white; font-weight: 650; cursor: pointer; }
+    button.secondary { background: #303039; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+    .hint { color: var(--muted); font-size: .9rem; }
+    #status { min-height: 1.5em; overflow-wrap: anywhere; }
+    #result { display: none; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>📤 Import / restore a memory glyph</h1>
+  <p class="hint">Choose an extension/Glyph Forge PNG or its <code>.kvmk</code> backup, then unlock it with the original passphrase. Decryption happens in this browser; nothing is uploaded.</p>
+  <section class="card">
+    <label for="glyphFile">Glyph PNG or encrypted .kvmk backup</label>
+    <input id="glyphFile" type="file" accept="image/png,.kvmk,application/octet-stream">
+    <label for="passphrase">Passphrase</label>
+    <input id="passphrase" type="password" autocomplete="current-password">
+    <button id="unlock" type="button">Unlock and restore</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </section>
+  <section class="card" id="result">
+    <h2>Restored context</h2>
+    <p class="hint" id="summary"></p>
+    <label for="prompt">Plain-text prompt (review before sharing with an AI service)</label>
+    <textarea id="prompt" readonly></textarea>
+    <button id="copy" type="button">Copy prompt</button>
+    <button id="clear" class="secondary" type="button">Clear restored data</button>
+    <p class="hint">This extension can restore the text but does not insert it into an AI chat automatically. Only share it with a service you trust.</p>
+  </section>
+</main>
+<script src="restore.js"></script>
+</body>
+</html>
