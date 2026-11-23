@@ -1,27 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        :root { --bg-base: #0c0c0e; --bg-surface: #16161a; --border-color: #2d2d34; --text-main: #f4f4f7; --text-muted: #a1a1aa; --accent-color: #3b82f6; }
-        body { width: 300px; margin: 0; padding: 16px; background: var(--bg-base); color: var(--text-main); font-family: sans-serif; }
-        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; }
-        .section { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
-        .title { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
-        input { width: 90%; background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; color: white; font-family: monospace; }
-        select { width: 100%; background: var(--bg-base); border: 1px solid var(--border-color); color: white; padding: 6px; }
-        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-        button { border: none; padding: 10px; font-weight: 600; border-radius: 4px; cursor: pointer; }
-        .btn-p { background: var(--accent-color); color: white; }
-        .status { font-size: 11px; text-align: center; margin-top: 10px; color: #10b981; font-family: monospace; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaleidoscope Extension</title>
+  <style>
+    :root { color-scheme: dark; --bg-base: #0c0c0e; --bg-surface: #16161a; --border-color: #2d2d34; --text-main: #f4f4f7; --text-muted: #a1a1aa; --accent-color: #3b82f6; }
+    body { width: 320px; margin: 0; padding: 16px; background: var(--bg-base); color: var(--text-main); font: 13px/1.45 system-ui, sans-serif; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; }
+    .header h1 { font-size: 15px; margin: 0; }
+    .version { color: var(--text-muted); font-size: 11px; }
+    .section { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+    .title { font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; background: var(--bg-base); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; color: white; font: inherit; }
+    textarea { min-height: 76px; resize: vertical; }
+    .hint { margin: 7px 0 0; color: var(--text-muted); font-size: 11px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    button { border: 0; padding: 10px; font-weight: 600; border-radius: 4px; cursor: pointer; color: var(--text-main); background: #2d2d34; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+    .btn-primary { background: var(--accent-color); }
+    .status { min-height: 1.4em; font-size: 11px; text-align: center; margin-top: 10px; color: #10b981; overflow-wrap: anywhere; }
+  </style>
 </head>
 <body>
-    <div class="header"><h3>🎨 KALEIDOSCOPE</h3><span style="font-size:11px;color:var(--text-muted)">KVMS-1.0</span></div>
-    <div class="section"><div class="title">🔒 Encryption Key</div><input type="password" id="pinInput" placeholder="****"></div>
-    <div class="section"><div class="title">🎨 Aesthetic Mask</div><select id="themeSelect"><option value="Bauhaus">Bauhaus Abstract Art</option><option value="Pixel">Retro 8-Bit Matrix</option></select></div>
-    <div class="actions"><button class="btn-p" id="expBtn">📥 Export</button><button style="background:#2d2d34;color:white" id="impBtn">📤 Import</button></div>
-    <div class="status" id="msg">System ready.</div>
-    <script src="popup.js"></script>
+  <header class="header"><h1>🎨 Kaleidoscope</h1><span class="version">KVMS-1.0</span></header>
+  <section class="section">
+    <div class="title"><label for="pinInput">🔒 Encryption passphrase</label></div>
+    <input type="password" id="pinInput" autocomplete="current-password" placeholder="Enter a strong passphrase">
+    <p class="hint">Your passphrase is used locally and is never uploaded.</p>
+  </section>
+  <section class="section">
+    <div class="title"><label for="themeSelect">🎨 Glyph artwork</label></div>
+    <select id="themeSelect">
+      <option value="Bauhaus">Bauhaus Abstract Art</option>
+      <option value="Pixel">Retro 8-Bit Matrix</option>
+      <option value="Kaleidoscope" selected>Classic Kaleidoscope</option>
+    </select>
+  </section>
+  <section class="section">
+    <div class="title"><label for="manualTextInput">Optional: text to seal</label></div>
+    <textarea id="manualTextInput" placeholder="Paste a conversation or summary here. Leave blank to collect text from the active page."></textarea>
+    <p class="hint">When blank, Export attempts to collect supported chat messages from the active tab.</p>
+  </section>
+  <div class="actions">
+    <button class="btn-primary" id="expBtn" type="button">📥 Export</button>
+    <button id="impBtn" type="button">📤 Import / restore</button>
+  </div>
+  <div class="status" id="msg" role="status" aria-live="polite">System ready.</div>
+  <script src="popup.js"></script>
 </body>
 </html>

@@ -1,18 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kaleidoscope Memory Glyph</title>
   <style>
-    body { background: #121214; color: #f4f4f7; font-family: sans-serif; display: flex; flex-direction: column;
-           justify-content: center; align-items: center; min-height: 100vh; margin: 0; gap: 12px; }
-    canvas { border-radius: 4px; max-width: 90vw; height: auto; }
-    a { color: #3b82f6; }
+    :root { color-scheme: dark; }
+    body { background: #121214; color: #f4f4f7; font: 14px/1.5 system-ui, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; gap: 12px; padding: 20px; box-sizing: border-box; text-align: center; }
+    canvas { width: min(512px, 90vw); height: auto; border-radius: 6px; }
+    #status { max-width: 560px; }
+    a { color: #60a5fa; }
   </style>
 </head>
 <body>
-  <canvas id="matrix" width="512" height="512"></canvas>
-  <div id="status">Building your glyph...</div>
+  <canvas id="matrix" width="512" height="512" aria-label="Encrypted memory glyph artwork"></canvas>
+  <div id="status" role="status" aria-live="polite">Building your glyph…</div>
   <script src="canvas_renderer.js"></script>
 </body>
 </html>
